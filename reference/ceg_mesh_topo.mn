@@ -1,0 +1,355 @@
+{
+  "version": "2",
+  "hosts": [
+    {
+      "number": "1",
+      "x": "190",
+      "y": "120",
+      "opts": {
+        "hostname": "h1",
+        "nodeNum": 1,
+        "sched": "host",
+        "ip": "10.0.0.1/24"
+      }
+    },
+    {
+      "number": "2",
+      "x": "460",
+      "y": "120",
+      "opts": {
+        "hostname": "h2",
+        "nodeNum": 2,
+        "sched": "host",
+        "ip": "10.0.0.2/24"
+      }
+    },
+    {
+      "number": "3",
+      "x": "730",
+      "y": "120",
+      "opts": {
+        "hostname": "h3",
+        "nodeNum": 3,
+        "sched": "host",
+        "ip": "10.0.0.3/24"
+      }
+    },
+    {
+      "number": "4",
+      "x": "190",
+      "y": "560",
+      "opts": {
+        "hostname": "h4",
+        "nodeNum": 4,
+        "sched": "host",
+        "ip": "10.0.0.4/24"
+      }
+    },
+    {
+      "number": "5",
+      "x": "460",
+      "y": "560",
+      "opts": {
+        "hostname": "h5",
+        "nodeNum": 5,
+        "sched": "host",
+        "ip": "10.0.0.5/24"
+      }
+    },
+    {
+      "number": "6",
+      "x": "730",
+      "y": "560",
+      "opts": {
+        "hostname": "h6",
+        "nodeNum": 6,
+        "sched": "host",
+        "ip": "10.0.0.6/24"
+      }
+    }
+  ],
+  "switches": [
+    {
+      "number": "1",
+      "x": "190",
+      "y": "230",
+      "opts": {
+        "hostname": "s1",
+        "nodeNum": 1,
+        "switchType": "default",
+        "controllers": [
+          "c0"
+        ],
+        "dpid": "0000000000000001"
+      }
+    },
+    {
+      "number": "2",
+      "x": "460",
+      "y": "230",
+      "opts": {
+        "hostname": "s2",
+        "nodeNum": 2,
+        "switchType": "default",
+        "controllers": [
+          "c0"
+        ],
+        "dpid": "0000000000000002"
+      }
+    },
+    {
+      "number": "3",
+      "x": "730",
+      "y": "230",
+      "opts": {
+        "hostname": "s3",
+        "nodeNum": 3,
+        "switchType": "default",
+        "controllers": [
+          "c0"
+        ],
+        "dpid": "0000000000000003"
+      }
+    },
+    {
+      "number": "4",
+      "x": "190",
+      "y": "450",
+      "opts": {
+        "hostname": "s4",
+        "nodeNum": 4,
+        "switchType": "default",
+        "controllers": [
+          "c0"
+        ],
+        "dpid": "0000000000000004"
+      }
+    },
+    {
+      "number": "5",
+      "x": "460",
+      "y": "450",
+      "opts": {
+        "hostname": "s5",
+        "nodeNum": 5,
+        "switchType": "default",
+        "controllers": [
+          "c0"
+        ],
+        "dpid": "0000000000000005"
+      }
+    },
+    {
+      "number": "6",
+      "x": "730",
+      "y": "450",
+      "opts": {
+        "hostname": "s6",
+        "nodeNum": 6,
+        "switchType": "default",
+        "controllers": [
+          "c0"
+        ],
+        "dpid": "0000000000000006"
+      }
+    }
+  ],
+  "links": [
+    {
+      "src": "s1",
+      "dest": "s2",
+      "opts": {
+        "bw": 40,
+        "delay": "5ms",
+        "port1": 2,
+        "port2": 2
+      }
+    },
+    {
+      "src": "s1",
+      "dest": "s4",
+      "opts": {
+        "bw": 40,
+        "delay": "8ms",
+        "port1": 3,
+        "port2": 3
+      }
+    },
+    {
+      "src": "s1",
+      "dest": "s5",
+      "opts": {
+        "bw": 40,
+        "delay": "18ms",
+        "port1": 4,
+        "port2": 5
+      }
+    },
+    {
+      "src": "s1",
+      "dest": "h1",
+      "opts": {
+        "bw": 40,
+        "delay": "15ms",
+        "port1": 1,
+        "port2": 0
+      }
+    },
+    {
+      "src": "s2",
+      "dest": "s3",
+      "opts": {
+        "bw": 40,
+        "delay": "10ms",
+        "port1": 3,
+        "port2": 2
+      }
+    },
+    {
+      "src": "s2",
+      "dest": "s5",
+      "opts": {
+        "bw": 40,
+        "delay": "12ms",
+        "port1": 4,
+        "port2": 4
+      }
+    },
+    {
+      "src": "s2",
+      "dest": "s4",
+      "opts": {
+        "bw": 40,
+        "delay": "6ms",
+        "port1": 5,
+        "port2": 4
+      }
+    },
+    {
+      "src": "s2",
+      "dest": "s6",
+      "opts": {
+        "bw": 40,
+        "delay": "14ms",
+        "port1": 6,
+        "port2": 4
+      }
+    },
+    {
+      "src": "s2",
+      "dest": "h2",
+      "opts": {
+        "bw": 40,
+        "delay": "15ms",
+        "port1": 1,
+        "port2": 0
+      }
+    },
+    {
+      "src": "s3",
+      "dest": "s6",
+      "opts": {
+        "bw": 40,
+        "delay": "7ms",
+        "port1": 3,
+        "port2": 3
+      }
+    },
+    {
+      "src": "s3",
+      "dest": "s5",
+      "opts": {
+        "bw": 40,
+        "delay": "9ms",
+        "port1": 4,
+        "port2": 6
+      }
+    },
+    {
+      "src": "s3",
+      "dest": "h3",
+      "opts": {
+        "bw": 40,
+        "delay": "15ms",
+        "port1": 1,
+        "port2": 0
+      }
+    },
+    {
+      "src": "s4",
+      "dest": "s5",
+      "opts": {
+        "bw": 40,
+        "delay": "15ms",
+        "port1": 2,
+        "port2": 2
+      }
+    },
+    {
+      "src": "s4",
+      "dest": "h4",
+      "opts": {
+        "bw": 40,
+        "delay": "15ms",
+        "port1": 1,
+        "port2": 0
+      }
+    },
+    {
+      "src": "s5",
+      "dest": "s6",
+      "opts": {
+        "bw": 40,
+        "delay": "20ms",
+        "port1": 3,
+        "port2": 2
+      }
+    },
+    {
+      "src": "s5",
+      "dest": "h5",
+      "opts": {
+        "bw": 40,
+        "delay": "15ms",
+        "port1": 1,
+        "port2": 0
+      }
+    },
+    {
+      "src": "s6",
+      "dest": "h6",
+      "opts": {
+        "bw": 40,
+        "delay": "15ms",
+        "port1": 1,
+        "port2": 0
+      }
+    }
+  ],
+  "controllers": [
+    {
+      "x": "930",
+      "y": "70",
+      "opts": {
+        "hostname": "c0",
+        "controllerType": "remote",
+        "controllerProtocol": "tcp",
+        "remoteIP": "127.0.0.1",
+        "remotePort": 6653
+      }
+    }
+  ],
+  "application": {
+    "ipBase": "10.0.0.0/24",
+    "startCLI": "1",
+    "terminalType": "xterm",
+    "switchType": "ovs",
+    "dpctl": "",
+    "openFlowVersions": {
+      "ovsOf10": "0",
+      "ovsOf11": "0",
+      "ovsOf12": "0",
+      "ovsOf13": "1"
+    }
+  }
+}

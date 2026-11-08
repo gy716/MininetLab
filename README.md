@@ -54,8 +54,18 @@ python3 -c 'import networkx; from importlib.metadata import version; print("Ryu"
 test -r ~/MininetLab/reference/ceg_mesh_topo.py
 sudo ovs-vsctl show
 ```
+# Task 1 
+## Topology in MiniEdit
+Open a new terminal inside the VM, run
+```bash
+sudo python -E ~/mininet/examples/miniedit.py
+```
+Click `File` at the top left corner and open `/MininetLab/reference/ceg_mesh_topo.mn` 
 
-## Start the controller and topology
+Click `Run`
+
+# Task 2
+## Start the controller and topology in command line
 
 In terminal 1, start Ryu and record its output. Keep this terminal open.
 
@@ -129,7 +139,7 @@ grep -E 'BASELINE|ANOMALY|FIREWALL' ~/MininetLab/anomaly_controller.log
 
 ### Recorded verification
 
-The completed verification on 8 November 2026 produced these results. Rates and detection times vary between runs.
+The completed verification produced these results. Rates and detection times vary between runs.
 
 | Check | Observed result |
 | --- | --- |
