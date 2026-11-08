@@ -1,0 +1,59 @@
+loading app /home/ubuntu/MininetLab/mesh_controller.py
+loading app ryu.controller.ofp_handler
+instantiating app /home/ubuntu/MininetLab/mesh_controller.py of MeshController
+Loaded 6 switches, 11 mesh links, 6 host ports
+Broadcast tree edges: [(1, 2), (2, 3), (2, 4), (3, 5), (3, 6)]
+instantiating app ryu.controller.ofp_handler of OFPHandler
+Switch s1 connected
+Switch s2 connected
+Switch s3 connected
+Switch s4 connected
+Switch s5 connected
+Switch s6 connected
+BASELINE source=10.0.0.1 rate=1.00 pps ema=1.00 threshold=50.00
+BASELINE source=10.0.0.1 rate=2.97 pps ema=1.39 threshold=50.00
+BASELINE source=10.0.0.1 rate=0.99 pps ema=1.31 threshold=50.00
+BASELINE source=10.0.0.2 rate=2.97 pps ema=2.97 threshold=50.00
+BASELINE source=10.0.0.2 rate=1.97 pps ema=2.77 threshold=50.00
+BASELINE source=10.0.0.3 rate=1.97 pps ema=1.97 threshold=50.00
+BASELINE source=10.0.0.3 rate=1.91 pps ema=1.96 threshold=50.00
+BASELINE source=10.0.0.3 rate=1.00 pps ema=1.77 threshold=50.00
+BASELINE source=10.0.0.4 rate=3.00 pps ema=3.00 threshold=50.00
+BASELINE source=10.0.0.4 rate=1.97 pps ema=2.79 threshold=50.00
+BASELINE source=10.0.0.5 rate=1.97 pps ema=1.97 threshold=50.00
+BASELINE source=10.0.0.6 rate=0.93 pps ema=0.93 threshold=50.00
+BASELINE source=10.0.0.5 rate=2.80 pps ema=2.14 threshold=50.00
+BASELINE source=10.0.0.6 rate=3.89 pps ema=1.53 threshold=50.00
+BASELINE source=10.0.0.1 rate=0.96 pps ema=1.24 threshold=50.00
+BASELINE source=10.0.0.1 rate=0.99 pps ema=1.19 threshold=50.00
+BASELINE source=10.0.0.1 rate=0.91 pps ema=1.14 threshold=50.00
+BASELINE source=10.0.0.1 rate=1.00 pps ema=1.11 threshold=50.00
+BASELINE source=10.0.0.1 rate=0.99 pps ema=1.08 threshold=50.00
+BASELINE source=10.0.0.1 rate=0.93 pps ema=1.05 threshold=50.00
+BASELINE source=10.0.0.1 rate=2.00 pps ema=1.24 threshold=50.00
+BASELINE source=10.0.0.1 rate=0.99 pps ema=1.19 threshold=50.00
+BASELINE source=10.0.0.1 rate=1.00 pps ema=1.15 threshold=50.00
+ANOMALY source=10.0.0.1 rate=48988.01 pps baseline=1.15 threshold=50.00
+FIREWALL source=10.0.0.1 switch=s1 action=drop
+FIREWALL source=10.0.0.1 switch=s2 action=drop
+FIREWALL source=10.0.0.1 switch=s3 action=drop
+FIREWALL source=10.0.0.1 switch=s4 action=drop
+FIREWALL source=10.0.0.1 switch=s5 action=drop
+FIREWALL source=10.0.0.1 switch=s6 action=drop
+BASELINE source=10.0.0.3 rate=1.00 pps ema=1.61 threshold=50.00
+BASELINE source=10.0.0.3 rate=1.00 pps ema=1.49 threshold=50.00
+BASELINE source=10.0.0.3 rate=1.00 pps ema=1.39 threshold=50.00
+BASELINE source=10.0.0.3 rate=0.99 pps ema=1.31 threshold=50.00
+BASELINE source=10.0.0.3 rate=1.00 pps ema=1.25 threshold=50.00
+BASELINE source=10.0.0.3 rate=2.00 pps ema=1.40 threshold=50.00
+BASELINE source=10.0.0.2 rate=4.00 pps ema=3.02 threshold=50.00
+BASELINE source=10.0.0.4 rate=4.00 pps ema=3.03 threshold=50.00
+BASELINE source=10.0.0.3 rate=4.00 pps ema=1.92 threshold=50.00
+BASELINE source=10.0.0.5 rate=2.00 pps ema=2.11 threshold=50.00
+BASELINE source=10.0.0.6 rate=3.96 pps ema=2.01 threshold=50.00
+BASELINE source=10.0.0.5 rate=1.98 pps ema=2.09 threshold=50.00
+BASELINE source=10.0.0.3 rate=0.99 pps ema=1.73 threshold=50.00
+BASELINE source=10.0.0.3 rate=1.00 pps ema=1.59 threshold=50.00
+BASELINE source=10.0.0.3 rate=0.99 pps ema=1.47 threshold=50.00
+BASELINE source=10.0.0.3 rate=0.99 pps ema=1.37 threshold=50.00
+BASELINE source=10.0.0.3 rate=0.94 pps ema=1.28 threshold=50.00

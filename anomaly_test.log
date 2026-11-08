@@ -1,0 +1,59 @@
+*** Creating network
+*** Adding hosts:
+h1 h2 h3 h4 h5 h6 
+*** Adding switches:
+s1 s2 s3 s4 s5 s6 
+*** Adding links:
+(40.00Mbit 15ms delay) (40.00Mbit 15ms delay) (s1, h1) (40.00Mbit 5ms delay) (40.00Mbit 5ms delay) (s1, s2) (40.00Mbit 8ms delay) (40.00Mbit 8ms delay) (s1, s4) (40.00Mbit 18ms delay) (40.00Mbit 18ms delay) (s1, s5) (40.00Mbit 15ms delay) (40.00Mbit 15ms delay) (s2, h2) (40.00Mbit 10ms delay) (40.00Mbit 10ms delay) (s2, s3) (40.00Mbit 6ms delay) (40.00Mbit 6ms delay) (s2, s4) (40.00Mbit 12ms delay) (40.00Mbit 12ms delay) (s2, s5) (40.00Mbit 14ms delay) (40.00Mbit 14ms delay) (s2, s6) (40.00Mbit 15ms delay) (40.00Mbit 15ms delay) (s3, h3) (40.00Mbit 9ms delay) (40.00Mbit 9ms delay) (s3, s5) (40.00Mbit 7ms delay) (40.00Mbit 7ms delay) (s3, s6) (40.00Mbit 15ms delay) (40.00Mbit 15ms delay) (s4, h4) (40.00Mbit 15ms delay) (40.00Mbit 15ms delay) (s4, s5) (40.00Mbit 15ms delay) (40.00Mbit 15ms delay) (s5, h5) (40.00Mbit 20ms delay) (40.00Mbit 20ms delay) (s5, s6) (40.00Mbit 15ms delay) (40.00Mbit 15ms delay) (s6, h6) 
+*** Configuring hosts
+h1 h2 h3 h4 h5 h6 
+*** Starting controller
+c0 
+*** Starting 6 switches
+s1 (40.00Mbit 15ms delay) (40.00Mbit 5ms delay) (40.00Mbit 8ms delay) (40.00Mbit 18ms delay) s2 (40.00Mbit 15ms delay) (40.00Mbit 5ms delay) (40.00Mbit 10ms delay) (40.00Mbit 12ms delay) (40.00Mbit 6ms delay) (40.00Mbit 14ms delay) s3 (40.00Mbit 15ms delay) (40.00Mbit 10ms delay) (40.00Mbit 7ms delay) (40.00Mbit 9ms delay) s4 (40.00Mbit 15ms delay) (40.00Mbit 15ms delay) (40.00Mbit 8ms delay) (40.00Mbit 6ms delay) s5 (40.00Mbit 15ms delay) (40.00Mbit 15ms delay) (40.00Mbit 20ms delay) (40.00Mbit 12ms delay) (40.00Mbit 18ms delay) (40.00Mbit 9ms delay) s6 (40.00Mbit 15ms delay) (40.00Mbit 20ms delay) (40.00Mbit 7ms delay) (40.00Mbit 14ms delay) ...(40.00Mbit 15ms delay) (40.00Mbit 5ms delay) (40.00Mbit 8ms delay) (40.00Mbit 18ms delay) (40.00Mbit 5ms delay) (40.00Mbit 15ms delay) (40.00Mbit 10ms delay) (40.00Mbit 6ms delay) (40.00Mbit 12ms delay) (40.00Mbit 14ms delay) (40.00Mbit 10ms delay) (40.00Mbit 15ms delay) (40.00Mbit 9ms delay) (40.00Mbit 7ms delay) (40.00Mbit 8ms delay) (40.00Mbit 6ms delay) (40.00Mbit 15ms delay) (40.00Mbit 15ms delay) (40.00Mbit 18ms delay) (40.00Mbit 12ms delay) (40.00Mbit 9ms delay) (40.00Mbit 15ms delay) (40.00Mbit 15ms delay) (40.00Mbit 20ms delay) (40.00Mbit 14ms delay) (40.00Mbit 7ms delay) (40.00Mbit 20ms delay) (40.00Mbit 15ms delay) 
+*** Waiting for switches to connect
+s1 s2 s3 s4 s5 s6 
+*** Ping: testing ping reachability
+h1 -> h2 h3 h4 h5 h6 
+h2 -> h1 h3 h4 h5 h6 
+h3 -> h1 h2 h4 h5 h6 
+h4 -> h1 h2 h3 h5 h6 
+h5 -> h1 h2 h3 h4 h6 
+h6 -> h1 h2 h3 h4 h5 
+*** Results: 0% dropped (30/30 received)
+h2 -> h3 h4 h5 h6 
+h3 -> h2 h4 h5 h6 
+h4 -> h2 h3 h5 h6 
+h5 -> h2 h3 h4 h6 
+h6 -> h2 h3 h4 h5 
+*** Results: 0% dropped (20/20 received)
+*** Stopping 1 controllers
+c0 
+*** Stopping 17 links
+.................
+*** Stopping 6 switches
+s1 s2 s3 s4 s5 s6 
+*** Stopping 6 hosts
+h1 h2 h3 h4 h5 h6 
+*** Done
+{
+  "initial_pingall_loss_percent": 0.0,
+  "normal_ping": "PING 10.0.0.2 (10.0.0.2) 56(84) bytes of data.\r\n64 bytes from 10.0.0.2: icmp_seq=1 ttl=64 time=276 ms\r\n64 bytes from 10.0.0.2: icmp_seq=2 ttl=64 time=303 ms\r\n64 bytes from 10.0.0.2: icmp_seq=3 ttl=64 time=231 ms\r\n64 bytes from 10.0.0.2: icmp_seq=4 ttl=64 time=85.3 ms\r\n64 bytes from 10.0.0.2: icmp_seq=5 ttl=64 time=196 ms\r\n64 bytes from 10.0.0.2: icmp_seq=6 ttl=64 time=281 ms\r\n64 bytes from 10.0.0.2: icmp_seq=7 ttl=64 time=247 ms\r\n64 bytes from 10.0.0.2: icmp_seq=8 ttl=64 time=176 ms\r\n64 bytes from 10.0.0.2: icmp_seq=9 ttl=64 time=228 ms\r\n64 bytes from 10.0.0.2: icmp_seq=10 ttl=64 time=311 ms\r\n\r\n--- 10.0.0.2 ping statistics ---\r\n10 packets transmitted, 10 received, 0% packet loss, time 9236ms\r\nrtt min/avg/max/mdev = 85.257/233.519/311.194/64.724 ms\r\n",
+  "block_detected_after_seconds": 1.157,
+  "destination_capture": "\n",
+  "destination_capture_status": 124,
+  "drop_counter_before": 67218,
+  "drop_counter_after": 270658,
+  "switches_with_source_block": [
+    "s1",
+    "s2",
+    "s3",
+    "s4",
+    "s5",
+    "s6"
+  ],
+  "legitimate_pingall_loss_percent": 0.0,
+  "legitimate_continuous_ping": "PING 10.0.0.4 (10.0.0.4) 56(84) bytes of data.\n64 bytes from 10.0.0.4: icmp_seq=1 ttl=64 time=159 ms\n64 bytes from 10.0.0.4: icmp_seq=2 ttl=64 time=114 ms\n64 bytes from 10.0.0.4: icmp_seq=3 ttl=64 time=130 ms\n64 bytes from 10.0.0.4: icmp_seq=4 ttl=64 time=145 ms\n64 bytes from 10.0.0.4: icmp_seq=5 ttl=64 time=129 ms\n64 bytes from 10.0.0.4: icmp_seq=6 ttl=64 time=144 ms\n64 bytes from 10.0.0.4: icmp_seq=7 ttl=64 time=136 ms\n64 bytes from 10.0.0.4: icmp_seq=8 ttl=64 time=92.1 ms\n64 bytes from 10.0.0.4: icmp_seq=9 ttl=64 time=154 ms\n64 bytes from 10.0.0.4: icmp_seq=10 ttl=64 time=155 ms\n64 bytes from 10.0.0.4: icmp_seq=11 ttl=64 time=155 ms\n64 bytes from 10.0.0.4: icmp_seq=12 ttl=64 time=138 ms\n\n--- 10.0.0.4 ping statistics ---\n12 packets transmitted, 12 received, 0% packet loss, time 11076ms\nrtt min/avg/max/mdev = 92.122/137.548/158.816/18.607 ms\n",
+  "blocked_source_ping": "PING 10.0.0.2 (10.0.0.2) 56(84) bytes of data.\r\n\r\n--- 10.0.0.2 ping statistics ---\r\n3 packets transmitted, 0 received, 100% packet loss, time 2119ms\r\n\r\n",
+  "passed": true
+}
