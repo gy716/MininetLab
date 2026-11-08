@@ -7,7 +7,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-TOPO_PATH="$SCRIPT_DIR/../ceg5101Lab/reference/ceg_mesh_topo.py"
+TOPO_PATH="$SCRIPT_DIR/reference/ceg_mesh_topo.py"
 
 if [[ ! -r "$TOPO_PATH" ]]; then
     printf 'Cannot read topology file: %s\n' "$TOPO_PATH" >&2

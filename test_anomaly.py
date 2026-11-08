@@ -21,7 +21,7 @@ from mininet.log import setLogLevel
 
 ROOT = Path(__file__).resolve().parent
 spec = importlib.util.spec_from_file_location(
-    "lab_topology", str(ROOT.parent / "ceg5101Lab/reference/ceg_mesh_topo.py"))
+    "lab_topology", str(ROOT / "reference/ceg_mesh_topo.py"))
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 

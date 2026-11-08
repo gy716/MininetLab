@@ -36,7 +36,7 @@ class MeshController(app_manager.RyuApp):
 
         # Import the actual topology definition instead of maintaining another
         # hand-written adjacency list that could drift from the Mininet network.
-        path = Path(__file__).resolve().parent.parent / "ceg5101Lab/reference/ceg_mesh_topo.py"
+        path = Path(__file__).resolve().parent / "reference/ceg_mesh_topo.py"
         # Ryu patches Python's select module for asynchronous I/O. Mininet
         # requires the original select.poll, so read its topology in a separate
         # Python process and return only ordinary JSON data to this controller.
