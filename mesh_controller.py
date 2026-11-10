@@ -5,8 +5,10 @@ host attachment ports and link delays. Start Mininet from that same file.
 This controller assumes the topology remains fixed while it is running.
 """
 import json
+import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import networkx as nx
@@ -31,6 +33,23 @@ class MeshController(app_manager.RyuApp):
     MONITOR_COOKIE = 0x51010001
     BLOCK_COOKIE = 0x51010002
 
+    # These coefficients are expressed in the same cost units as delay (ms).
+    # The routing load coefficient is separate from EMA_ALPHA, which controls
+    # source anomaly detection. A fully utilized link adds 30 cost units.
+    LOAD_COST_ALPHA = 30.0
+    ANOMALY_COST_BETA = 50.0
+    ANOMALY_HOLD_SECONDS = 30.0
+    ROUTE_IDLE_SECONDS = 10.0
+    ROUTE_COOKIE_PREFIX = 0x5102000000000000
+    ROUTE_COOKIE_MASK = 0xffff000000000000
+    # Reconsider active pairs once per polling cycle. Both an absolute and a
+    # relative improvement are required, then a cooldown limits oscillation.
+    REROUTE_MIN_IMPROVEMENT = 2.0
+    REROUTE_MIN_FRACTION = 0.10
+    REROUTE_COOLDOWN_SECONDS = 5.0
+    BARRIER_TIMEOUT_SECONDS = 2.0
+    OLD_PATH_DRAIN_SECONDS = 1.0
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -49,7 +68,7 @@ topo = module.MeshTopo()
 print(json.dumps({
     "ids": {s: int(topo.nodeInfo(s)["dpid"], 16) for s in topo.switches()},
     "hosts": {h: topo.nodeInfo(h)["ip"].split("/")[0] for h in topo.hosts()},
-    "links": [[a, b, {"delay": info.get("delay", "1ms")}, topo.port(a, b)]
+    "links": [[a, b, {"delay": info.get("delay", "1ms"), "bw": info.get("bw")}, topo.port(a, b)]
               for a, b, info in topo.links(withInfo=True)]
 }))
 """
@@ -69,6 +88,18 @@ print(json.dumps({
         self.source_baselines = {}
         self.blocked_sources = set()
         self.stats_parts = {}
+        self.port_peers = {}
+        self.port_samples = {}
+        self.host_attachments = {}
+        self.routes = {}
+        self.route_sequence = 0
+        self.barrier_waiters = {}
+        self.switch_errors = {}
+        # Optional evaluation hooks. Normal runs have no pinned routes and no
+        # telemetry output. Pins constrain only the experiment's attack pair so
+        # its traffic actually traverses the link specified in the assignment.
+        self.route_pins = {}
+        self.telemetry_path = os.environ.get("MININET_TELEMETRY_FILE")
 
         for left, right, info, ports in structure["links"]:
             left_port, right_port = ports
@@ -79,9 +110,19 @@ print(json.dumps({
                 delay = info["delay"]
                 if not delay.endswith("ms"):
                     raise ValueError("Expected topology link delays in milliseconds")
-                self.graph.add_edge(a, b, weight=float(delay[:-2]))
+                base_cost = float(delay[:-2])
+                capacity_bps = float(info["bw"]) * 1e6
+                if base_cost <= 0 or capacity_bps <= 0:
+                    raise ValueError("Mesh links require positive delay and bandwidth")
+                # Preserve C0 independently of weight. Updating weight must
+                # never compound a previous load or anomaly penalty.
+                self.graph.add_edge(a, b, weight=base_cost, base_cost=base_cost,
+                                    capacity_bps=capacity_bps, anomaly_until=0.0,
+                                    anomaly=False, utilization=0.0, rate_bps=0.0)
                 self.ports[a, b] = left_port
                 self.ports[b, a] = right_port
+                self.port_peers[a, left_port] = b
+                self.port_peers[b, right_port] = a
             else:
                 # Host ports are the only ports where learning a source MAC
                 # is safe. Learning on transit ports could move a host's location
@@ -90,10 +131,23 @@ print(json.dumps({
                 self.host_ports[ids[switch]].add(port)
                 host = right if left in switches else left
                 self.ingress_hosts[ids[switch], port] = self.host_ips[host]
+                self.host_attachments[self.host_ips[host]] = (ids[switch], port)
+
+        for pair, path in json.loads(os.environ.get("MININET_ROUTE_PINS", "{}")).items():
+            source, destination = pair.split(",")
+            if (not path or len(path) != len(set(path))
+                    or path[0] != self.host_attachments[source][0]
+                    or path[-1] != self.host_attachments[destination][0]
+                    or any(not self.graph.has_edge(a, b) for a, b in zip(path, path[1:]))):
+                raise ValueError("Invalid evaluation route pin: %s" % pair)
+            self.route_pins[source, destination] = path
+            self.logger.info("EVALUATION_PIN pair=%s path=%s", pair, path)
 
         # A minimum spanning tree provides exactly one broadcast path between
         # any two switches. All mesh links remain available for unicast routing.
-        self.tree = nx.minimum_spanning_tree(self.graph, weight="weight")
+        # Keep broadcast forwarding stable as load varies. This tree uses the
+        # original delay costs, while unicast uses the live graph weights.
+        self.tree = nx.minimum_spanning_tree(self.graph, weight="base_cost")
         self.logger.info("Loaded %d switches, %d mesh links, %d host ports",
                          len(self.graph), self.graph.number_of_edges(),
                          sum(map(len, self.host_ports.values())))
@@ -169,6 +223,18 @@ print(json.dumps({
         if ingress in self.host_ports[dpid]:
             self.host_locations[eth.src] = (dpid, ingress)
 
+        if ip is not None:
+            # All switches on an IPv4 flow use the same cached path snapshot.
+            # Computing a fresh next hop independently at every PacketIn could
+            # mix old and new costs and create a loop during a load change.
+            output = self.route_ipv4(datapath, ingress, ip.src, ip.dst)
+            if output is not None:
+                datapath.send_msg(parser.OFPPacketOut(
+                    datapath=datapath, buffer_id=ofp.OFP_NO_BUFFER,
+                    in_port=ingress, actions=[parser.OFPActionOutput(output)],
+                    data=msg.data))
+            return
+
         destination = self.host_locations.get(eth.dst)
         if destination is not None:
             target_switch, target_port = destination
@@ -177,14 +243,17 @@ print(json.dumps({
             else:
                 # Positive delay weights make every hop move closer to the
                 # destination. Dijkstra can use redundant links outside the tree.
-                path = nx.shortest_path(self.graph, dpid, target_switch, weight="weight")
+                path = nx.shortest_path(self.tree, dpid, target_switch)
                 output = self.ports[dpid, path[1]]
             if output == ingress:
                 return
             actions = [parser.OFPActionOutput(output)]
             # One destination-MAC rule handles subsequent packets in the switch.
             # The initial packet is forwarded explicitly below.
-            self.add_flow(datapath, 10, parser.OFPMatch(eth_dst=eth.dst), actions)
+            # L2 control traffic follows the stable tree. Include eth_type so
+            # an ARP rule cannot accidentally bypass IPv4 dynamic routing.
+            self.add_flow(datapath, 10, parser.OFPMatch(
+                eth_type=eth.ethertype, eth_dst=eth.dst), actions)
         else:
             # ARP broadcasts and unknown destinations travel only on tree links.
             # Reject copies arriving on non-tree transit links, and never send
@@ -221,15 +290,36 @@ print(json.dumps({
                              if key[0] != dpid}
         self.stats_parts = {key: value for key, value in self.stats_parts.items()
                             if key[0] != dpid}
+        self.port_samples = {key: value for key, value in self.port_samples.items()
+                             if key[0] != dpid}
+        for key, route in list(self.routes.items()):
+            if dpid in route["path"]:
+                self.remove_route(key)
 
     def monitor(self):
-        """Request only our ingress accounting flows, never transit counters."""
+        """Poll source counters, route activity, and physical mesh-port load."""
         while True:
+            now = time.monotonic()
+            for key, route in list(self.routes.items()):
+                if not route.get("switching") and now - route["last_active"] > self.ROUTE_IDLE_SECONDS:
+                    self.remove_route(key)
+            # Expire anomaly penalties even if the affected link is now idle.
+            for a, b in self.graph.edges():
+                self.update_link_cost(a, b, now)
+            self.reevaluate_routes(now)
+            self.write_telemetry(now)
             for datapath in list(self.datapaths.values()):
                 parser = datapath.ofproto_parser
                 datapath.send_msg(parser.OFPFlowStatsRequest(
                     datapath, table_id=0, cookie=self.MONITOR_COOKIE,
                     cookie_mask=0xffffffffffffffff))
+                datapath.send_msg(parser.OFPPortStatsRequest(
+                    datapath, 0, datapath.ofproto.OFPP_ANY))
+                # Forwarding counters include echo replies, so activity on the
+                # return path is measured while replies bypass anomaly scoring.
+                datapath.send_msg(parser.OFPFlowStatsRequest(
+                    datapath, table_id=1, cookie=self.ROUTE_COOKIE_PREFIX,
+                    cookie_mask=self.ROUTE_COOKIE_MASK))
             hub.sleep(self.POLL_SECONDS)
 
     @set_ev_cls(ofp_event.EventOFPFlowStatsReply, MAIN_DISPATCHER)
@@ -250,6 +340,15 @@ print(json.dumps({
         if msg.flags & msg.datapath.ofproto.OFPMPF_REPLY_MORE:
             return
         rows = self.stats_parts.pop(reply_key)
+        for flow in rows:
+            if flow.cookie & self.ROUTE_COOKIE_MASK == self.ROUTE_COOKIE_PREFIX:
+                key = (flow.match.get("ipv4_src"), flow.match.get("ipv4_dst"))
+                route = self.routes.get(key)
+                if (route is not None and flow.cookie == route["cookie"]
+                        and dpid == route["path"][0]):
+                    if flow.packet_count > route["last_count"]:
+                        route["last_active"] = time.monotonic()
+                    route["last_count"] = flow.packet_count
         source_rates = {}
         for flow in rows:
             if flow.cookie != self.MONITOR_COOKIE:
@@ -287,6 +386,7 @@ print(json.dumps({
                     "ANOMALY source=%s rate=%.2f pps baseline=%.2f threshold=%.2f",
                     source, rate, baseline, threshold)
                 self.blocked_sources.add(source)
+                self.mark_anomaly_paths(source, dpid)
                 for datapath in list(self.datapaths.values()):
                     self.install_block(datapath, source)
                 continue
@@ -303,6 +403,263 @@ print(json.dumps({
                         self.EMA_ALPHA * sample["rate"] + (1 - self.EMA_ALPHA) * old)
             self.logger.info("BASELINE source=%s rate=%.2f pps ema=%.2f threshold=%.2f",
                              source, rate, updated, threshold)
+
+    def route_ipv4(self, datapath, ingress, source, destination):
+        """Select one live-cost path per IPv4 source/destination pair.
+
+        New pairs use current costs. Active pairs can be migrated by the monitor
+        after hysteresis/cooldown checks. Idle pairs are still removed normally.
+        """
+        key = (source, destination)
+        route = self.routes.get(key)
+        if route is None:
+            source_attachment = self.host_attachments.get(source)
+            target_attachment = self.host_attachments.get(destination)
+            # Only a packet entering at its configured source host may create a
+            # route. A delayed transit packet from an expired path is discarded.
+            if source_attachment != (datapath.id, ingress) or target_attachment is None:
+                return None
+            path = self.route_pins.get(key) or nx.shortest_path(
+                self.graph, source_attachment[0], target_attachment[0], weight="weight")
+            if any(switch not in self.datapaths for switch in path):
+                return None
+            route = self.make_route(key, path)
+            self.routes[key] = route
+            self.install_path(key, route)
+            cost = sum(self.graph[a][b]["weight"] for a, b in zip(path, path[1:]))
+            self.logger.info("ROUTE source=%s destination=%s path=%s cost=%.3f",
+                             source, destination, path, cost)
+        expected = route["ports"].get(datapath.id)
+        if expected is None or ingress != expected[0]:
+            return None
+        route["last_active"] = time.monotonic()
+        return expected[1]
+
+    def remove_route(self, key):
+        """Delete only this cached path's rules, preserving firewall/accounting."""
+        route = self.routes.pop(key)
+        self.delete_route_rules(route)
+
+    def delete_route_rules(self, route):
+        """Delete one cookie generation, including retired path fragments."""
+        for switch in route["path"]:
+            datapath = self.datapaths.get(switch)
+            if datapath is not None:
+                parser, ofp = datapath.ofproto_parser, datapath.ofproto
+                datapath.send_msg(parser.OFPFlowMod(
+                    datapath=datapath, table_id=1, command=ofp.OFPFC_DELETE,
+                    cookie=route["cookie"], cookie_mask=0xffffffffffffffff,
+                    out_port=ofp.OFPP_ANY, out_group=ofp.OFPG_ANY,
+                    match=parser.OFPMatch()))
+
+    def make_route(self, key, path):
+        """Allocate a distinct cookie generation and ingress/output map."""
+        self.route_sequence += 1
+        source_attachment = self.host_attachments[key[0]]
+        target_attachment = self.host_attachments[key[1]]
+        now = time.monotonic()
+        route = {"path": list(path), "ports": {}, "last_count": 0,
+                 "last_active": now, "last_reroute": now, "switching": False,
+                 "cookie": self.ROUTE_COOKIE_PREFIX | self.route_sequence}
+        for index, switch in enumerate(path):
+            input_port = source_attachment[1] if index == 0 else self.ports[
+                switch, path[index - 1]]
+            output_port = target_attachment[1] if index == len(path) - 1 else self.ports[
+                switch, path[index + 1]]
+            route["ports"][switch] = (input_port, output_port)
+        return route
+
+    def install_path(self, key, route, wait=False):
+        """Install destination-to-source, optionally confirming every switch.
+
+        Rules match the preceding ingress port as well as the IP pair. A rule
+        shared with the old path changes only after the new downstream suffix
+        is ready. Old-only rules remain for packets already in flight.
+        Waiting runs in a worker greenlet so Ryu can process barrier replies.
+        """
+        for switch in reversed(route["path"]):
+            dp = self.datapaths[switch]
+            input_port, output_port = route["ports"][switch]
+            error_count = self.switch_errors.get(switch, 0)
+            self.add_flow(dp, 20, dp.ofproto_parser.OFPMatch(
+                in_port=input_port, eth_type=0x0800, ipv4_src=key[0], ipv4_dst=key[1]),
+                [dp.ofproto_parser.OFPActionOutput(output_port)], cookie=route["cookie"])
+            if wait:
+                self.wait_for_barrier(dp)
+                if self.switch_errors.get(switch, 0) != error_count:
+                    raise RuntimeError("OpenFlow error while installing path")
+
+    def wait_for_barrier(self, datapath):
+        request = datapath.ofproto_parser.OFPBarrierRequest(datapath)
+        datapath.set_xid(request)
+        key = (datapath.id, request.xid)
+        event = hub.Event()
+        self.barrier_waiters[key] = event
+        try:
+            datapath.send_msg(request)
+            if not event.wait(timeout=self.BARRIER_TIMEOUT_SECONDS):
+                raise RuntimeError("Switch s%d barrier timed out" % datapath.id)
+        finally:
+            self.barrier_waiters.pop(key, None)
+
+    @set_ev_cls(ofp_event.EventOFPBarrierReply, MAIN_DISPATCHER)
+    def barrier_reply(self, ev):
+        event = self.barrier_waiters.get((ev.msg.datapath.id, ev.msg.xid))
+        if event is not None:
+            event.set()
+
+    @set_ev_cls(ofp_event.EventOFPErrorMsg, [CONFIG_DISPATCHER, MAIN_DISPATCHER])
+    def openflow_error(self, ev):
+        switch = ev.msg.datapath.id
+        self.switch_errors[switch] = self.switch_errors.get(switch, 0) + 1
+        self.logger.error("OPENFLOW_ERROR switch=s%d type=%s code=%s",
+                          switch, ev.msg.type, ev.msg.code)
+
+    def reevaluate_routes(self, now):
+        """Move active, legitimate flows when an alternative is materially cheaper."""
+        for key, route in list(self.routes.items()):
+            if (route.get("switching") or key in self.route_pins
+                    or key[0] in self.blocked_sources or key[1] in self.blocked_sources
+                    or now - route["last_reroute"] < self.REROUTE_COOLDOWN_SECONDS):
+                continue
+            path = nx.shortest_path(self.graph, route["path"][0],
+                                    route["path"][-1], weight="weight")
+            old_cost = sum(self.graph[a][b]["weight"] for a, b in
+                           zip(route["path"], route["path"][1:]))
+            new_cost = sum(self.graph[a][b]["weight"] for a, b in zip(path, path[1:]))
+            improvement = max(self.REROUTE_MIN_IMPROVEMENT,
+                              self.REROUTE_MIN_FRACTION * old_cost)
+            if path != route["path"] and old_cost - new_cost >= improvement:
+                route["switching"] = True
+                hub.spawn(self.switch_route, key, route, path, old_cost, new_cost)
+
+    def switch_route(self, key, old, path, old_cost, new_cost):
+        """Make-before-break update with rollback on missing acknowledgements."""
+        new = self.make_route(key, path)
+        try:
+            self.install_path(key, new, wait=True)
+            if self.routes.get(key) is not old:
+                raise RuntimeError("Route invalidated during update")
+            new["last_reroute"] = new["last_active"] = time.monotonic()
+            self.routes[key] = new
+            self.logger.info(
+                "REROUTE time=%.6f source=%s destination=%s old=%s new=%s old_cost=%.3f new_cost=%.3f",
+                time.monotonic(), key[0], key[1], old["path"], path, old_cost, new_cost)
+            # Preserve old-only rules briefly so packets already on the former
+            # route can reach their destination. Cookie-specific deletion cannot
+            # remove the new generation even when the two paths overlap.
+        except Exception:
+            self.logger.exception("REROUTE_FAILED source=%s destination=%s", *key)
+            try:
+                if self.routes.get(key) is old:
+                    self.install_path(key, old, wait=True)
+                    old["last_count"] = 0
+                    old["last_active"] = old["last_reroute"] = time.monotonic()
+            except Exception:
+                self.logger.exception("REROUTE_ROLLBACK_FAILED source=%s destination=%s", *key)
+                if self.routes.get(key) is old:
+                    self.remove_route(key)
+            finally:
+                # Rollback has restored any overlapping matches to the old
+                # cookie before this removes new-only rule fragments.
+                self.delete_route_rules(new)
+        else:
+            hub.sleep(self.OLD_PATH_DRAIN_SECONDS)
+            self.delete_route_rules(old)
+        finally:
+            old["switching"] = False
+
+    def write_telemetry(self, now):
+        """Optional one-second JSONL snapshots used by the reproducible trials."""
+        if not self.telemetry_path:
+            return
+        record = {"time": now, "blocked": sorted(self.blocked_sources),
+                  "links": {}, "routes": {}}
+        for a, b, edge in self.graph.edges(data=True):
+            record["links"]["s%d-s%d" % (min(a, b), max(a, b))] = {
+                name: edge[name] for name in ("base_cost", "weight", "rate_bps",
+                                              "utilization", "anomaly", "anomaly_until")}
+        for key, route in self.routes.items():
+            record["routes"][",".join(key)] = {"path": route["path"],
+                "cookie": route["cookie"], "switching": route["switching"]}
+        with open(self.telemetry_path, "a") as handle:
+            handle.write(json.dumps(record) + "\n")
+
+    @set_ev_cls(ofp_event.EventOFPPortStatsReply, MAIN_DISPATCHER)
+    def port_stats(self, ev):
+        """Measure link traffic from byte-counter deltas, in bits per second.
+
+        Use TX counters at both endpoints to obtain the two traffic directions.
+        RX would count the same packets again. The graph is undirected, so use
+        the busier direction as its load, consistent with a full-duplex link's
+        per-direction capacity. Each port is independent, including multipart
+        replies. Missing replies retain the last known rate until a new sample.
+        """
+        msg = ev.msg
+        if self.datapaths.get(msg.datapath.id) is not msg.datapath:
+            return
+        now = time.monotonic()
+        for port in msg.body:
+            key = (msg.datapath.id, port.port_no)
+            neighbor = self.port_peers.get(key)
+            if neighbor is None or port.tx_bytes == 0xffffffffffffffff:
+                continue
+            duration = port.duration_sec + port.duration_nsec / 1e9
+            previous = self.port_samples.get(key)
+            rate = 0.0
+            if previous is not None:
+                elapsed = duration - previous["duration"]
+                delta_bytes = port.tx_bytes - previous["bytes"]
+                if elapsed > 0 and delta_bytes >= 0:
+                    rate = 8.0 * delta_bytes / elapsed
+            # The first sample, a reset counter, or a restarted port establishes
+            # a fresh reference. No negative rate or lifetime-average estimate.
+            self.port_samples[key] = {"bytes": port.tx_bytes, "duration": duration,
+                                      "rate": rate}
+            self.update_link_cost(msg.datapath.id, neighbor, now)
+
+    def update_link_cost(self, a, b, now):
+        """Apply C(t) = C0 + alpha * utilization(t) + beta * anomaly(t)."""
+        edge = self.graph[a][b]
+        forward = self.port_samples.get((a, self.ports[a, b]), {}).get("rate", 0.0)
+        reverse = self.port_samples.get((b, self.ports[b, a]), {}).get("rate", 0.0)
+        rate = max(forward, reverse)
+        # TCLink bw uses Mbit/s. Cap utilization at 1 to bound the load penalty
+        # when counter bursts or shaping overhead briefly exceed that capacity.
+        utilization = min(1.0, rate / edge["capacity_bps"])
+        anomaly = now < edge["anomaly_until"]
+        cost = (edge["base_cost"] + self.LOAD_COST_ALPHA * utilization
+                + self.ANOMALY_COST_BETA * int(anomaly))
+        if abs(cost - edge["weight"]) >= 0.1 or anomaly != edge["anomaly"]:
+            self.logger.info(
+                "LINK_COST s%d-s%d base=%.3f rate=%.0f bps utilization=%.4f anomaly=%d cost=%.3f",
+                min(a, b), max(a, b), edge["base_cost"], rate, utilization, anomaly, cost)
+        edge.update(weight=cost, rate_bps=rate, utilization=utilization, anomaly=anomaly)
+
+    def mark_anomaly_paths(self, source, dpid):
+        """Attribute a source anomaly to the paths it used in this stats window.
+
+        Port counters alone cannot identify a source. Combine the source's
+        positive ingress-flow deltas with the installed source/destination paths.
+        This infers link impact from the installed paths and source counters.
+        Keep the binary penalty for 30 seconds after detection so legitimate
+        flows can avoid the affected links while the firewall stops the source.
+        Repeated detections on an edge extend its expiry instead of stacking beta.
+        """
+        now = time.monotonic()
+        affected = set()
+        for key, sample in self.flow_samples.items():
+            if key[0] == dpid and key[2] == source and sample.get("rate", 0) > 0:
+                route = self.routes.get((source, key[3]))
+                if route is not None:
+                    affected.update(tuple(sorted((a, b))) for a, b in
+                                    zip(route["path"], route["path"][1:]))
+        for a, b in sorted(affected):
+            edge = self.graph[a][b]
+            edge["anomaly_until"] = max(edge["anomaly_until"], now + self.ANOMALY_HOLD_SECONDS)
+            self.update_link_cost(a, b, now)
+        self.logger.warning("ANOMALY_LINKS source=%s edges=%s hold_seconds=%.1f",
+                            source, sorted(affected), self.ANOMALY_HOLD_SECONDS)
 
     def install_block(self, datapath, source):
         """Drop this source IP before forwarding, preserving every mesh link.

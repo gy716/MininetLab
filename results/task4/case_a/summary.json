@@ -1,0 +1,47 @@
+{
+  "case": "a",
+  "attack_source": "10.0.0.2",
+  "attack_target": "10.0.0.3",
+  "affected_link": "s2-s3",
+  "pinned_attack_path": [
+    2,
+    3
+  ],
+  "duration": 65,
+  "attack_start": 15,
+  "attack_end": 27,
+  "initial_pingall_loss": 0.0,
+  "start_monotonic": 25570.80739152,
+  "block_after_attack_seconds": 2.011351356999512,
+  "capture_exit": 124,
+  "capture_packets": "",
+  "capture_start": 19.00069251199966,
+  "capture_end": 23.012498132000474,
+  "drops_before": 245538,
+  "drops_after": 514164,
+  "flood_active_during_capture": true,
+  "switches_blocking_source": [
+    "s1",
+    "s2",
+    "s3",
+    "s4",
+    "s5",
+    "s6"
+  ],
+  "post_attack_ping_loss": 0.0,
+  "blocked_source_ping": "PING 10.0.0.3 (10.0.0.3) 56(84) bytes of data.\r\n\r\n--- 10.0.0.3 ping statistics ---\r\n3 packets transmitted, 0 received, 100% packet loss, time 2041ms\r\n\r\n",
+  "penalty_start": 16.133481454999128,
+  "penalty_end": 45.35481319799874,
+  "path_changes": [
+    {
+      "time": 0.012265127999853576,
+      "path": [
+        1,
+        2,
+        6
+      ]
+    }
+  ],
+  "connected_every_five_seconds": true,
+  "passed": true
+}
