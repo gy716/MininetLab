@@ -1,209 +1,19 @@
-# Mininet mesh lab
+# CA2: Laboratory Assignment (Anomaly aware Routing and Blocking Controller)
 
 This lab uses Ryu and OpenFlow 1.3 to route traffic through a six-switch mesh, prevent broadcast loops, detect unusually high source traffic rates, and block anomalous IPv4 sources. Legitimate hosts retain access to the mesh links after a source is blocked.
 
-## Environment and directory layout
-
-The verified environment is the Multipass VM `ca2-part1`, running Ubuntu 20.04, Python 3.8.10, Mininet 2.3.1b4, Open vSwitch 2.13.8, Ryu 4.34, and NetworkX 2.4.
-
-From the Mac terminal, connect to the VM.
-
-```bash
-multipass shell ca2-part1
-cd ~/MininetLab
-```
-
-Run the remaining commands inside Ubuntu. Open a separate VM shell for each terminal mentioned below.
-
-The topology is bundled in this repository. The controller, launcher, and test resolve it relative to their own location.
-
-```text
-MininetLab/
-├── reference/
-│   └── ceg_mesh_topo.py
-├── mesh_controller.py
-├── run_controller.sh
-├── run_topology.sh
-├── test_anomaly.py
-├── test_dynamic_cost.py
-├── test_dynamic_routing.py
-├── evaluate_task4.py
-├── task4_probe.py
-├── plot_task4.py
-└── README.md
-```
-
-The bundled file was copied from the supplied lab topology. Linux paths are case-sensitive. The scripts use lowercase `reference` and the filename `ceg_mesh_topo.py`, with the letter `o`. The topology exports `MeshTopo` and registers the Mininet topology name `meshTopo`. Copy or clone the complete repository when setting up another VM.
-
-The supplied topology contains six hosts, six switches, six host attachment links, and 11 switch-to-switch links. Host addresses are `10.0.0.1` through `10.0.0.6`. Links have 40 Mbit/s bandwidth, and switch-link delays supply the routing costs.
-
-## Prerequisites
-
-Mininet, Open vSwitch, Ryu, and Python 3 must be installed in the VM. The launcher uses `sudo` to create network namespaces and configure switches.
-
-Install the additional graph and test utilities on the existing Ubuntu lab image.
-
-```bash
-sudo apt-get update
-sudo apt-get install -y python3-networkx hping3 tcpdump python3-matplotlib
-sudo systemctl start openvswitch-switch
-```
-
-Check the tools and required topology before starting.
-
-```bash
-command -v mn ryu-manager ovs-vsctl ovs-ofctl hping3 tcpdump timeout
-mn --version
-ovs-vsctl --version
-python3 -c 'import networkx; from importlib.metadata import version; print("Ryu", version("ryu")); print("NetworkX", networkx.__version__)'
-test -r ~/MininetLab/reference/ceg_mesh_topo.py
-sudo ovs-vsctl show
-```
-# Task 1 
 ## Topology in MiniEdit
 Open a new terminal inside the VM, run
 ```bash
-sudo python -E ~/mininet/examples/miniedit.py
+sudo -E python ~/mininet/examples/miniedit.py
 ```
-Click `File` at the top left corner and open `/MininetLab/reference/ceg_mesh_topo.mn` 
+Open `/MininetLab/reference/ceg_mesh_topo.mn` in the MiniEdit.
 
-Click `Run`
+The schematic of the topology is shown below, the base cost (default delay) for each mesh link is marked above the link.
+![Topology](topology.jpg)
 
-# Task 2
-## Start the controller and topology in command line
-
-In terminal 1, start Ryu and record its output. Keep this terminal open.
-
-```bash
-cd ~/MininetLab
-set -o pipefail
-./run_controller.sh 2>&1 | tee anomaly_controller.log
-```
-
-The launcher runs `ryu-manager` with `--observe-links` and listens on TCP port `6653`. Startup logs should report six switches, 11 mesh links, six host ports, and the broadcast tree.
-
-In terminal 2, start the topology.
-
-```bash
-cd ~/MininetLab
-./run_topology.sh
-```
-
-The launcher selects OpenFlow 1.3 and connects to the remote controller at `127.0.0.1:6653`. At the `mininet>` prompt, inspect the network and check connectivity.
-
-```text
-nodes
-net
-pingall
-```
-
-A fresh run should report `0% dropped (30/30 received)`. Enter `exit` to stop the topology. Use Ctrl+C in terminal 1 to stop Ryu.
-
-## Run the automated anomaly test
-
-Start a fresh controller using the terminal 1 command above. Run the test with the topology stopped, because the test creates and removes its own network.
-
-In terminal 2, run the following commands.
-
-```bash
-cd ~/MininetLab
-set -o pipefail
-sudo python3 test_anomaly.py 2>&1 | tee anomaly_test.log
-```
-
-The test performs these checks in order.
-
-1. Connect all six switches and verify all 30 directed host pairs with `pingall`.
-2. Send ten ordinary pings from `h1` to `h2` at one-second intervals to train the baseline.
-3. Start continuous legitimate pings from `h3` to `h4`.
-4. Generate an ICMP flood from `h1` to `10.0.0.2`, bounded by a 15-second timeout.
-5. Require a source-IP drop rule on `s1` within seven seconds.
-6. Allow packets already in flight to drain, then capture at `h2` for three seconds. Require zero ICMP echo requests from `h1` while its flood process remains active.
-7. Verify that the ingress drop counter increases and that all six switches have the source block.
-8. Check all 20 directed pairs among `h2` through `h6` while the flood remains active, plus the continuous legitimate ping.
-9. Stop the flood, let the transmit queue drain, and confirm that three ordinary pings from `h1` to `h2` still fail.
-
-Successful completion prints `"passed": true` and exits with status zero. Assertions fail the test when an expected condition is missing. The test stops its child processes and network in its cleanup block.
-
-### Saved evidence
-
-| File | Contents |
-| --- | --- |
-| `anomaly_controller.log` | Controller startup, accepted baseline samples, anomaly events, and firewall installation messages, recorded by the controller command above |
-| `anomaly_test.log` | Full test output, recorded by the test command above |
-| `anomaly_test_results.json` | Measurements and assertions' supporting results, written by the test itself |
-
-Each run replaces the corresponding evidence files. The JSON file is created by the privileged test and may be owned by root.
-
-Inspect the results inside the VM.
-
-```bash
-cat ~/MininetLab/anomaly_test_results.json
-grep -E 'BASELINE|ANOMALY|FIREWALL' ~/MininetLab/anomaly_controller.log
-```
-
-### Recorded verification
-
-The completed verification produced these results. Rates and detection times vary between runs.
-
-| Check | Observed result |
-| --- | --- |
-| Initial connectivity | 30/30 received |
-| Normal baseline training | 10/10 received |
-| Source EMA before attack | 1.15 packets/s |
-| Attack rate at detection | 48,988.01 packets/s |
-| Detection threshold | 50 packets/s |
-| Source block observed | 1.157 seconds after flood start |
-| Attack packets captured at destination after blocking | Zero over three seconds |
-| Ingress drop counter | Increased from 67,218 to 270,658 during capture |
-| Switches with source block | All six |
-| Legitimate host connectivity during flooding | 20/20 received |
-| Continuous legitimate ping | 12/12 received |
-| Blocked source ping after flood stopped | 0/3 received |
-
-## Manual normal-traffic and flood test
-
-Start a fresh controller and the interactive topology as described above. Enter the following commands at the `mininet>` prompt. The destination address is required for `hping3`.
-
-First establish normal connectivity and the source baseline.
-
-```text
-pingall
-h1 ping -c 10 -i 1 10.0.0.2
-```
-
-Watch terminal 1 for `BASELINE source=10.0.0.1` messages. Then launch a bounded background flood and check a legitimate host pair.
-
-```text
-h1 timeout --signal=INT 15s hping3 --icmp --flood 10.0.0.2 > /tmp/mininet-h1-flood.log 2>&1 &
-h3 ping -c 5 10.0.0.4
-```
-
-The controller should log an `ANOMALY` for `10.0.0.1` followed by six `FIREWALL` messages. Inspect the actual switch rules.
-
-```text
-sh ovs-ofctl -O OpenFlow13 dump-flows s1 table=0
-```
-
-Look for a priority-100 rule matching `nw_src=10.0.0.1` with `actions=drop`. Its `n_packets` counter should increase while the flood continues.
-
-After the 15-second flood ends, check that the block persists and that the other hosts remain connected.
-
-```text
-h1 ping -c 3 -W 1 10.0.0.2
-py net.ping(hosts=[net.get(name) for name in ('h2', 'h3', 'h4', 'h5', 'h6')], timeout='1')
-```
-
-Expect 100% loss for the blocked source and zero loss among the five legitimate hosts. A full `pingall` after blocking includes `h1`, so failures involving that host are expected. The automated test additionally verifies destination packet capture and increasing drop counters during the flood.
-
-## Controller operation and settings
-
-The controller imports the supplied topology in a separate Python process. This avoids the incompatibility between Ryu's asynchronous I/O patches and Mininet's use of `select.poll`. Switch IDs, ports, host IPs, and link delays come from that topology.
-
-IPv4 unicast forwarding uses Dijkstra shortest paths weighted by the dynamic link costs described below. ARP and other L2 forwarding use a stable minimum spanning tree based on original link delays. This prevents broadcast loops while leaving every mesh link available for IPv4 routing.
-
-OpenFlow table 0 applies the firewall and ingress accounting. Table 1 performs forwarding. Accounting flows match IPv4 source/destination pairs at each source host's attachment port, so transit traffic is counted once. ICMP echo replies bypass anomaly accounting to avoid classifying the responding victim as the flood source.
-
+## Traffic Monitoring, Anomaly Detection and Source Blocking
+### Detect anomaly using EMA 
 For each active flow, the sampled rate is the increase in its packet counter divided by the increase in its switch-reported flow duration. Rates are aggregated by source. Accepted samples update per-flow and per-source EMAs.
 
 ```text
@@ -212,9 +22,9 @@ threshold = max(MIN_THRESHOLD_PPS, ANOMALY_MULTIPLIER × source_EMA_previous)
 anomalous when current_source_rate > threshold
 ```
 
-The comparison uses the previous baseline. An anomalous sample is excluded from EMA updates. Idle samples leave baselines unchanged. A source starts with a provisional baseline of 1 packet/s, and its first accepted sample initializes its learned baseline.
+The comparison uses the previous baseline. An anomalous sample is excluded from EMA updates. Idle samples leave baselines unchanged. 
 
-Edit these constants in `MeshController`, then restart the controller to apply changes.
+
 
 | Constant | Default | Meaning |
 | --- | --- | --- |
@@ -223,11 +33,65 @@ Edit these constants in `MeshController`, then restart the controller to apply c
 | `ANOMALY_MULTIPLIER` | `5.0` | Source EMA multiplier |
 | `MIN_THRESHOLD_PPS` | `50.0` | Minimum anomaly threshold in packets/s |
 
-A detected source receives a priority-100 IPv4 drop rule on every connected switch. The PacketIn handler also rejects queued packets from blocked sources. Blocks cover all IPv4 protocols for that source and remain active for the controller session. They are reapplied when a switch reconnects during that session.
 
-Source blocking preserves switches and links for legitimate traffic. The topology is a startup snapshot. New and active IPv4 flows use current link costs, with hysteresis and a cooldown for active migrations. Live physical-link failure handling remains outside the current implementation. Monitoring covers the configured lab host pairs and their source IPs, and IPv6 traffic is discarded.
 
-## Dynamic link costs
+### Testing
+In terminal 1, start the controller.
+
+```bash
+cd ~/MininetLab
+bash run_controller.sh
+```
+
+`run_controller.sh` runs `ryu-manager` with `--observe-links` and listens on TCP port `6653`. Startup logs should report six switches, 11 mesh links, six host ports, and the broadcast tree.
+
+In terminal 2, run the topology using Mininet.
+
+```bash
+cd ~/MininetLab
+bash run_topology.sh
+```
+
+`run_topology.sh` starts Mininet with the topology and connects to the remote controller at `127.0.0.1:6653`. At the `mininet>` prompt, inspect the network and check connectivity.
+
+```text
+nodes
+net
+pingall
+```
+
+A fresh run should report `0% dropped (30/30 received)`. 
+
+Now, establish the source baseline.
+
+```text
+h1 ping -c 10 h2
+```
+
+Watch terminal 1 for `BASELINE source=10.0.0.1` messages. Then run the following command in terminal 2 to simulate attack.
+
+```text
+h1 hping3 --icmp --flood h2
+```
+
+Stop the flooding after about 10 seconds. Check terminal 1, the controller should log an `ANOMALY` for `10.0.0.1` followed by six `FIREWALL` messages. Then inspect the actual switch rules by running following command in terminal 2.
+
+```text
+sh ovs-ofctl -O OpenFlow13 dump-flows s1 table=0
+```
+
+The flow table should contain a priority-100 rule matching `nw_src=10.0.0.1` with `actions=drop`. 
+
+After the flood ends, check that the block persists and that the other hosts remain connected.
+
+```text
+h1 ping -c 3 h2
+h4 ping -c 3 h2
+```
+h2 should receive no replies from h1 but can receive replies from h4.
+
+
+## Dynamic Link-Cost Update
 
 For each switch-to-switch link, the controller implements the supplied cost model.
 
@@ -238,8 +102,6 @@ TX_rate = 8 × change_in_tx_bytes / change_in_port_duration
 ```
 
 ### Original costs and units
-
-`C0` is read directly from the link's preset delay in `reference/ceg_mesh_topo.py`. The cost is expressed in millisecond-based units. Dynamic penalties influence route choice while the link's configured delay and bandwidth continue to govern packet transmission in Mininet.
 
 | Link | Original cost |
 | --- | --- |
@@ -256,32 +118,6 @@ TX_rate = 8 × change_in_tx_bytes / change_in_port_duration
 | s3–s5 | 9 |
 
 Bandwidth is read from each link's `bw` value and converted from Mbit/s to bit/s. Every supplied mesh link has a reference capacity of 40,000,000 bit/s. Host attachment links are excluded from the routing graph.
-
-### Load measurement
-
-Every polling interval, OpenFlow port-statistics requests collect transmit-byte counters from both ends of each mesh link. Rates use counter deltas and the switch-reported port duration. Receiving a packet at the opposite endpoint is the same transmission, so the calculation uses the two TX directions. Because the graph represents an undirected full-duplex link, its cost reflects the busier direction. For example, two simultaneous 20 Mbit/s directions give 50% utilization on a 40 Mbit/s link.
-
-The first sample establishes a reference with zero estimated load. Counter resets restart that reference. Missing replies retain the last known rate, and unsupported counters are ignored. Short measurement bursts above the configured capacity are capped at 100% utilization. Each endpoint updates when its reply arrives, so the two direction samples can have slightly different collection times.
-
-`base_cost` is stored independently from the live `weight`. Every update starts from that original value, which prevents repeated updates from accumulating penalties.
-
-### Anomaly attribution and lifetime
-
-When the existing EMA detector flags a source, the controller looks at that source's positive ingress-flow deltas in the current statistics window. Each corresponding installed source/destination route identifies the switch links used by that traffic. Those links receive `A=1`. This is an inference from source counters and installed paths.
-
-The binary anomaly penalty lasts 30 seconds from detection. Multiple detections affecting the same edge extend its expiry. Expiry returns `A` to zero, while measured load continues to contribute to cost. The source-IP firewall block lasts for the controller session independently of this temporary link penalty.
-
-This targets links associated with observed anomalous traffic. An inactive source/destination pair contributes no affected links for that window. If the active pair has no installed route record, the controller has no path to attribute to that pair.
-
-### Routing decisions and flow consistency
-
-A routing flow is an IPv4 source/destination pair. The first packet selects a complete shortest path from the live costs. The controller caches that path and installs rules matching the source IP, destination IP, and expected ingress port.
-
-Every polling cycle also reevaluates active legitimate flows. Migration requires a cost improvement of at least both 2 cost units and 10% of the current path cost. A five-second cooldown limits repeated migrations as load changes. Blocked sources and destinations are excluded from active migration.
-
-A worker installs the candidate path from destination to source and waits for each switch's OpenFlow barrier acknowledgement before proceeding upstream. This ensures a new downstream suffix exists before traffic is directed into it. Rules match the preceding ingress port, allowing old-only path segments to coexist with the new path. After the new source rule is acknowledged, the controller commits the new cached path and retains old-only rules for one second to drain in-flight packets. Cookie-specific cleanup then removes those retired rules. A missing acknowledgement triggers restoration of the former path. Waiting happens outside the main event handler so barrier replies can be processed.
-
-Separate forwarding-counter polls refresh activity, including ICMP echo replies. Ten seconds of observed inactivity still removes an idle route. Firewall and source-accounting entries are preserved during route updates. The broadcast tree remains stable. Physical topology is still a startup snapshot.
 
 ### Routing parameters and example
 
@@ -301,39 +137,116 @@ The routing coefficient `LOAD_COST_ALPHA` is separate from the detector's `EMA_A
 
 For s1–s2, the original cost is 5. At 20 Mbit/s, utilization is 0.5 and the cost becomes `5 + 30 × 0.5 = 20`. The alternative s1–s4–s2 costs `8 + 6 = 14` when idle, so a new flow can prefer that alternative. If s1–s2 is also anomaly-affected, its cost becomes `20 + 50 = 70`. When traffic and the temporary penalty clear, its cost returns toward 5.
 
-### Verify dynamic routing
+## Rerouting of Legitmate Traffic
 
-Run the deterministic checks inside the VM. They exercise original delays, utilization units, full-duplex measurements, counter resets, utilization capping, cached-path consistency, new route selection, anomaly expiry, acknowledged active migration, cooldown, and rollback.
 
-```bash
-cd ~/MininetLab
-python3 -m unittest -v test_dynamic_cost.py
-```
+### Method
 
-For the live load test, start a fresh controller in terminal 1 and run the following command in terminal 2 with the topology stopped.
+Three independent 65-second trials used fresh controllers and the original topology. Each began with 30/30 successful ping checks. The continuous h1-to-h6 UDP stream offered 0.3072 Mbps using 32 datagrams/s of 1200 bytes each. A concurrent one-second ping checked bidirectional reachability. This legitimate rate stays below the 50 packets/s detector floor during baseline initialization.
 
-```bash
-cd ~/MininetLab
-sudo python3 test_dynamic_routing.py
-```
+The flood generator ran from 15 to 27 seconds. Measurement continued until 65 seconds to observe the 30-second anomaly penalty expire and the active route recover. The After phase includes the remaining penalty interval. Recovered starts two seconds after the measured penalty expiry.
 
-The live test creates the network and sends a bounded, paced echo-reply stream from h2 to h1. Echo replies are exempt from the existing source anomaly detector, which lets this test isolate the load term. They still contribute to the mesh port counters. The test verifies successful h1-to-h3 pings, inspects s1's forwarding rule for the alternative first hop through s4, stops the stream, waits for route inactivity expiry, and verifies recovery of the first hop through s2. It cleans up its network and traffic process.
+Only each attack pair was pinned to the assigned direct link. Case C requires this constraint because s5–s3–s6 costs 16, below the direct s5–s6 cost of 20. h1–h6 remained fully adaptive in every case. Original link delays and bandwidths were preserved.
 
-The earlier subsequent-flow implementation was verified on 10 November 2026 with three deterministic checks and two live tests. Under load, s1–s2 reached about 30 cost units and a new h1-to-h3 flow selected s1–s4–s2–s3 at cost 24. After traffic stopped and the route expired, the flow selected s1–s2–s3 at cost 15. Both three-packet ping checks had zero loss. The anomaly regression also preserved all 20 legitimate directed host pairs, blocked the attacker, and raised the affected link's cost before the temporary penalty expired.
+### Active-route design
 
-Restart the controller and run `sudo python3 test_anomaly.py` to repeat the complete source-blocking and legitimate-connectivity regression test.
+The cost is C0 + 30 × utilization + 50 × anomaly. Utilization uses the busier TX direction divided by 40 Mbit/s, capped at 1. The anomaly term lasts 30 seconds after detection. The source firewall block persists for the controller session.
 
-Controller logs make each decision inspectable.
+Routes are reconsidered once per second. Migration requires improvement of at least both 2 cost units and 10%, with a five-second cooldown. Installation proceeds destination-to-source, waiting for each switch's OpenFlow barrier acknowledgement. Rules match ingress port and IP pair. Old-only entries drain for one second before cookie-specific removal. Failed acknowledgements trigger restoration of the previous path. The ARP tree stays stable.
 
-- `LINK_COST` records the base cost, measured rate in bit/s, utilization, anomaly flag, and resulting cost. Changes smaller than 0.1 cost units are omitted from the log while still updating the graph.
-- `ANOMALY_LINKS` records the affected source, inferred edges, and penalty lifetime.
-- `ROUTE` records the source, destination, selected switch sequence, and total cost at selection time.
-- `REROUTE` records the committed active migration, old/new paths, and old/new costs.
-- `REROUTE_FAILED` and `OPENFLOW_ERROR` identify update failures for diagnosis.
+### Measurements
 
-## Task 4 integrated evaluation
+- Normalized cost is affected-link cost divided by original delay. Its base value is 1, and it can exceed 1.
+- Loss uses transmitted UDP sequence numbers grouped by one-second send windows. Later arrivals within the capture are credited to their original send window.
+- Throughput uses unique UDP payload bytes received by h6 in one-second receive windows. Offered rate is 0.3072 Mbps.
+- Path changes are sampled approximately once per second. Actual flow-table snapshots independently verify paths at 10, 20, and 60 seconds.
 
-Stop the previous Mininet network and controller, then run the three independent cases inside the VM.
+### Case A
+
+Attack on **s2-s3**, from **10.0.0.2** to **10.0.0.3**.
+
+Original delay cost is **10.0**. The first measured affected-link cost is **10.000**. The initial h1–h6 path is **s1 → s2 → s6**, whose original delay sum is **19**.
+
+| Phase | Mean link cost | Mean normalized cost | Loss (%) | Received throughput (Mbps) |
+| --- | ---: | ---: | ---: | ---: |
+| Before | 10.000 | 1.000 | 0.000 | 0.3053 |
+| During | 56.160 | 5.616 | 0.000 | 0.3080 |
+| After | 33.684 | 3.368 | 0.000 | 0.3069 |
+| Recovered | 10.000 | 1.000 | 0.000 | 0.3068 |
+
+Blocking was observed **2.01 seconds** after flood start. The sampled peak link cost was **63.921**, or **6.392 times its original value**. Penalty expiry was approximately **45.35 seconds**.
+
+Recorded h1–h6 paths
+
+- 0.0s — s1 → s2 → s6
+
+The affected link was outside h1–h6's s1–s2–s6 route. That route stayed preferable, so the controller correctly retained it.
+
+All six switches installed the source block. A three-second destination capture observed zero post-block attack packets while the flood remained active. The ingress drop counter increased from **245538 to 514164**. All 20 legitimate post-attack ping checks passed, and ordinary pings from the blocked source failed after the flood stopped.
+
+![Case A plots](results/task4/case_a_plots.png)
+
+### Case B
+
+Attack on **s2-s6**, from **10.0.0.2** to **10.0.0.6**.
+
+Original delay cost is **14.0**. The first measured affected-link cost is **14.001**. The initial h1–h6 path is **s1 → s2 → s6**, whose original delay sum is **19**.
+
+| Phase | Mean link cost | Mean normalized cost | Loss (%) | Received throughput (Mbps) |
+| --- | ---: | ---: | ---: | ---: |
+| Before | 14.213 | 1.015 | 0.000 | 0.3059 |
+| During | 56.499 | 4.036 | 0.000 | 0.3064 |
+| After | 39.107 | 2.793 | 0.000 | 0.3072 |
+| Recovered | 14.238 | 1.017 | 0.000 | 0.3076 |
+
+Blocking was observed **2.01 seconds** after flood start. The sampled peak link cost was **72.674**, or **5.191 times its original value**. Penalty expiry was approximately **45.62 seconds**.
+
+Recorded h1–h6 paths
+
+- 0.0s — s1 → s2 → s6
+- 18.0s — s1 → s2 → s3 → s6
+- 47.0s — s1 → s2 → s6
+
+The affected s2–s6 link was on the initial route. The active flow moved through s2–s3–s6 as the penalty made that alternative cheaper, then returned to the direct s2–s6 segment after recovery.
+
+All six switches installed the source block. A three-second destination capture observed zero post-block attack packets while the flood remained active. The ingress drop counter increased from **200760 to 460013**. All 20 legitimate post-attack ping checks passed, and ordinary pings from the blocked source failed after the flood stopped.
+
+![Case B plots](results/task4/case_b_plots.png)
+
+### Case C
+
+Attack on **s5-s6**, from **10.0.0.5** to **10.0.0.6**.
+
+Original delay cost is **20.0**. The first measured affected-link cost is **20.001**. The initial h1–h6 path is **s1 → s2 → s6**, whose original delay sum is **19**.
+
+| Phase | Mean link cost | Mean normalized cost | Loss (%) | Received throughput (Mbps) |
+| --- | ---: | ---: | ---: | ---: |
+| Before | 20.000 | 1.000 | 0.000 | 0.3059 |
+| During | 62.434 | 3.122 | 0.000 | 0.3072 |
+| After | 45.000 | 2.250 | 0.000 | 0.3069 |
+| Recovered | 20.000 | 1.000 | 0.000 | 0.3074 |
+
+Blocking was observed **2.01 seconds** after flood start. The sampled peak link cost was **78.924**, or **3.946 times its original value**. Penalty expiry was approximately **45.92 seconds**.
+
+Recorded h1–h6 paths
+
+- 0.0s — s1 → s2 → s6
+
+The affected link was outside h1–h6's s1–s2–s6 route. That route stayed preferable, so the controller correctly retained it.
+
+All six switches installed the source block. A three-second destination capture observed zero post-block attack packets while the flood remained active. The ingress drop counter increased from **218983 to 487189**. All 20 legitimate post-attack ping checks passed, and ordinary pings from the blocked source failed after the flood stopped.
+
+![Case C plots](results/task4/case_c_plots.png)
+
+### Interpretation and limits
+
+The firewall stops sustained attack forwarding shortly after detection. High link load is consequently a short burst even while the generator continues until 27 seconds. Costs remain elevated during the anomaly hold, then return toward the original values. A link carrying the continuing legitimate stream retains a small load surcharge.
+
+Loss and throughput are measured at the receiver. Per-second throughput fluctuations can reflect packet timing and VM scheduling. Shared destination links and CPU load can affect delivery even when the targeted switch link is outside h1–h6's path. These trials establish continuity at the stated offered load. Maximum TCP capacity was not measured. One trial per case provides no statistical confidence interval.
+
+### Reproduce
+
+With the previous network and controller stopped, run inside the VM.
 
 ```bash
 cd ~/MininetLab
@@ -342,17 +255,8 @@ sudo env PYTHONDONTWRITEBYTECODE=1 python3 -u evaluate_task4.py
 sudo python3 plot_task4.py
 ```
 
-The evaluation starts and stops a fresh controller and topology for each case. It measures a continuous h1-to-h6 stream for 65 seconds, with a bounded ICMP flood from 15 to 27 seconds. Cases A, B, and C target s2–s3 using h2–h3, s2–s6 using h2–h6, and s5–s6 using h5–h6 respectively.
+Raw datagram logs, telemetry, captures, summaries, and flow snapshots are in results/task4/case_a, case_b, and case_c. The CSV files contain one-second measurements. Each run replaces these case outputs.
 
-The legitimate UDP stream offers 0.3072 Mbps using 32 packets/s of 1200 bytes, plus ordinary one-second pings. This defined offered load stays below the 50 packets/s anomaly floor during initial baseline learning. Received sequence numbers determine packet loss, and received payload bytes determine throughput. One-second normalized costs use current affected-link cost divided by its original delay cost.
-
-The experiment pins only the attack pair to its assigned direct link through the optional MININET_ROUTE_PINS environment setting. This ensures case C loads s5–s6, whose cost of 20 exceeds the natural s5–s3–s6 path cost of 16. Normal controller runs have no pins. The legitimate flow remains adaptive in every case. MININET_TELEMETRY_FILE optionally enables one-second JSONL state snapshots for the measurement process.
-
-All three measured cases passed on 10 November 2026. Cases A and C kept h1–h6 on s1–s2–s6. Case B changed the still-active flow to s1–s2–s3–s6 at approximately 18 seconds and returned to s1–s2–s6 at approximately 47 seconds. All measured legitimate UDP packets were received at this offered load. Every case verified the attack source block on all six switches, zero attack packets at the destination during the post-block capture, rising drop counters, and all 20 legitimate post-attack ping pairs.
-
-The results are documented in [the Task 4 report](results/task4/TASK4_REPORT.md). Plots and CSV measurements are in results/task4. Raw controller logs, sent/received datagrams, telemetry, capture output, and flow-table snapshots are in its case_a, case_b, and case_c subdirectories. Flow-table snapshots independently confirm the reported paths at 10, 20, and 60 seconds. These are single trials at the stated offered load.
-
-Each evaluation replaces its own case files. The After period includes the residual anomaly penalty. The report additionally isolates a Recovered period beginning two seconds after penalty expiry. Source-IP firewall blocks persist independently until the per-case controller is stopped.
 
 ## Reset and troubleshooting
 

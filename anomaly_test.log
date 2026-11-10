@@ -38,12 +38,12 @@ h1 h2 h3 h4 h5 h6
 *** Done
 {
   "initial_pingall_loss_percent": 0.0,
-  "normal_ping": "PING 10.0.0.2 (10.0.0.2) 56(84) bytes of data.\r\n64 bytes from 10.0.0.2: icmp_seq=1 ttl=64 time=276 ms\r\n64 bytes from 10.0.0.2: icmp_seq=2 ttl=64 time=303 ms\r\n64 bytes from 10.0.0.2: icmp_seq=3 ttl=64 time=231 ms\r\n64 bytes from 10.0.0.2: icmp_seq=4 ttl=64 time=85.3 ms\r\n64 bytes from 10.0.0.2: icmp_seq=5 ttl=64 time=196 ms\r\n64 bytes from 10.0.0.2: icmp_seq=6 ttl=64 time=281 ms\r\n64 bytes from 10.0.0.2: icmp_seq=7 ttl=64 time=247 ms\r\n64 bytes from 10.0.0.2: icmp_seq=8 ttl=64 time=176 ms\r\n64 bytes from 10.0.0.2: icmp_seq=9 ttl=64 time=228 ms\r\n64 bytes from 10.0.0.2: icmp_seq=10 ttl=64 time=311 ms\r\n\r\n--- 10.0.0.2 ping statistics ---\r\n10 packets transmitted, 10 received, 0% packet loss, time 9236ms\r\nrtt min/avg/max/mdev = 85.257/233.519/311.194/64.724 ms\r\n",
-  "block_detected_after_seconds": 1.157,
+  "normal_ping": "PING 10.0.0.2 (10.0.0.2) 56(84) bytes of data.\r\n64 bytes from 10.0.0.2: icmp_seq=1 ttl=64 time=97.7 ms\r\n64 bytes from 10.0.0.2: icmp_seq=2 ttl=64 time=159 ms\r\n64 bytes from 10.0.0.2: icmp_seq=3 ttl=64 time=120 ms\r\n64 bytes from 10.0.0.2: icmp_seq=4 ttl=64 time=110 ms\r\n64 bytes from 10.0.0.2: icmp_seq=5 ttl=64 time=185 ms\r\n64 bytes from 10.0.0.2: icmp_seq=6 ttl=64 time=146 ms\r\n64 bytes from 10.0.0.2: icmp_seq=7 ttl=64 time=119 ms\r\n64 bytes from 10.0.0.2: icmp_seq=8 ttl=64 time=178 ms\r\n64 bytes from 10.0.0.2: icmp_seq=9 ttl=64 time=152 ms\r\n64 bytes from 10.0.0.2: icmp_seq=10 ttl=64 time=183 ms\r\n\r\n--- 10.0.0.2 ping statistics ---\r\n10 packets transmitted, 10 received, 0% packet loss, time 9049ms\r\nrtt min/avg/max/mdev = 97.684/145.119/184.799/30.230 ms\r\n",
+  "block_detected_after_seconds": 0.668,
   "destination_capture": "\n",
   "destination_capture_status": 124,
-  "drop_counter_before": 67218,
-  "drop_counter_after": 270658,
+  "drop_counter_before": 68922,
+  "drop_counter_after": 270786,
   "switches_with_source_block": [
     "s1",
     "s2",
@@ -53,7 +53,7 @@ h1 h2 h3 h4 h5 h6
     "s6"
   ],
   "legitimate_pingall_loss_percent": 0.0,
-  "legitimate_continuous_ping": "PING 10.0.0.4 (10.0.0.4) 56(84) bytes of data.\n64 bytes from 10.0.0.4: icmp_seq=1 ttl=64 time=159 ms\n64 bytes from 10.0.0.4: icmp_seq=2 ttl=64 time=114 ms\n64 bytes from 10.0.0.4: icmp_seq=3 ttl=64 time=130 ms\n64 bytes from 10.0.0.4: icmp_seq=4 ttl=64 time=145 ms\n64 bytes from 10.0.0.4: icmp_seq=5 ttl=64 time=129 ms\n64 bytes from 10.0.0.4: icmp_seq=6 ttl=64 time=144 ms\n64 bytes from 10.0.0.4: icmp_seq=7 ttl=64 time=136 ms\n64 bytes from 10.0.0.4: icmp_seq=8 ttl=64 time=92.1 ms\n64 bytes from 10.0.0.4: icmp_seq=9 ttl=64 time=154 ms\n64 bytes from 10.0.0.4: icmp_seq=10 ttl=64 time=155 ms\n64 bytes from 10.0.0.4: icmp_seq=11 ttl=64 time=155 ms\n64 bytes from 10.0.0.4: icmp_seq=12 ttl=64 time=138 ms\n\n--- 10.0.0.4 ping statistics ---\n12 packets transmitted, 12 received, 0% packet loss, time 11076ms\nrtt min/avg/max/mdev = 92.122/137.548/158.816/18.607 ms\n",
-  "blocked_source_ping": "PING 10.0.0.2 (10.0.0.2) 56(84) bytes of data.\r\n\r\n--- 10.0.0.2 ping statistics ---\r\n3 packets transmitted, 0 received, 100% packet loss, time 2119ms\r\n\r\n",
+  "legitimate_continuous_ping": "PING 10.0.0.4 (10.0.0.4) 56(84) bytes of data.\n64 bytes from 10.0.0.4: icmp_seq=1 ttl=64 time=144 ms\n64 bytes from 10.0.0.4: icmp_seq=2 ttl=64 time=122 ms\n64 bytes from 10.0.0.4: icmp_seq=3 ttl=64 time=122 ms\n64 bytes from 10.0.0.4: icmp_seq=4 ttl=64 time=117 ms\n64 bytes from 10.0.0.4: icmp_seq=5 ttl=64 time=131 ms\n64 bytes from 10.0.0.4: icmp_seq=6 ttl=64 time=123 ms\n64 bytes from 10.0.0.4: icmp_seq=7 ttl=64 time=131 ms\n64 bytes from 10.0.0.4: icmp_seq=8 ttl=64 time=120 ms\n64 bytes from 10.0.0.4: icmp_seq=9 ttl=64 time=140 ms\n64 bytes from 10.0.0.4: icmp_seq=10 ttl=64 time=115 ms\n64 bytes from 10.0.0.4: icmp_seq=11 ttl=64 time=131 ms\n64 bytes from 10.0.0.4: icmp_seq=12 ttl=64 time=155 ms\n\n--- 10.0.0.4 ping statistics ---\n12 packets transmitted, 12 received, 0% packet loss, time 11037ms\nrtt min/avg/max/mdev = 115.395/129.300/155.431/11.616 ms\n",
+  "blocked_source_ping": "PING 10.0.0.2 (10.0.0.2) 56(84) bytes of data.\r\n\r\n--- 10.0.0.2 ping statistics ---\r\n3 packets transmitted, 0 received, 100% packet loss, time 2046ms\r\n\r\n",
   "passed": true
 }
