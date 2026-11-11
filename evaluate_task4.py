@@ -175,6 +175,12 @@ def run_case(label, attacker_name, target_name, pinned_path):
                 (folder / "capture.log").write_text(errors + captured)
                 summary["switches_blocking_source"] = [
                     switch.name for switch in net.switches if block_count(switch.name, source) is not None]
+            # Check the block shortly after the flood, within the recovery
+            # quarantine, rather than assuming that it lasts indefinitely.
+            if tick == ATTACK_END + 3:
+                summary["blocked_source_ping"] = net[attacker_name].cmd(
+                    "ping -c 1 -W 1 " + target)
+                summary["blocked_probe_seconds_after_flood"] = time.monotonic() - start - ATTACK_END
             if tick % 5 == 0:
                 snapshot = {switch.name: dump_flows(switch.name, 1) for switch in net.switches}
                 (folder / ("flows_%02d.json" % tick)).write_text(json.dumps(snapshot, indent=2))
@@ -184,8 +190,6 @@ def run_case(label, attacker_name, target_name, pinned_path):
         receiver.wait(timeout=5)
         summary["post_attack_ping_loss"] = net.ping(
             hosts=[host for host in net.hosts if host.name != attacker_name], timeout="1")
-        summary["blocked_source_ping"] = net[attacker_name].cmd(
-            "ping -c 3 -W 1 " + target)
         (folder / "observations.json").write_text(json.dumps(observations, indent=2))
 
         rows = read_jsonl(telemetry)

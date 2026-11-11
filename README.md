@@ -105,7 +105,7 @@ sh ovs-ofctl -O OpenFlow13 dump-flows s1 table=0
 
 The flow table should contain a priority-100 rule matching `nw_src=10.0.0.1` with `actions=drop`.
 
-After the flood ends, check that the block persists and that the other hosts remain connected.
+Immediately after the flood ends, check that the source remains blocked during its recovery countdown and that the other hosts remain connected.
 
 ```text
 h1 ping -c 3 h2
@@ -113,6 +113,60 @@ h4 ping -c 3 h2
 ```
 h2 should receive no replies from h1 but can receive replies from h4.
 
+
+## Automatic source recovery
+
+The `feature/source-recovery` branch automatically releases a blocked source after **50 seconds without further traffic above its anomaly threshold**. The controller stays running throughout blocking and recovery.
+
+While a source is blocked, the priority-100 drop rules continue counting its IPv4 packets. The controller polls those counters once per second. The ordinary forwarding counters cannot indicate whether the flood stopped because the drop rule prevents packets from reaching them.
+
+The recovery decision uses the same threshold as source detection, `max(50 packets/s, 5 × the accepted source EMA)`. The busiest switch's source-drop rate represents continuing activity without counting the same in-flight packets several times. A renewed high-rate burst resets the 50-second countdown. Occasional normal ping attempts below the threshold leave the countdown running. Recovery measurements include all IPv4 packets matching the source block.
+
+Every topology switch must provide fresh counter samples. Missing statistics, a missing drop rule, a counter reset, or a switch reconnect delays recovery. A missing rule is reinstalled. Counter resets establish a new observation window. Late replies from an earlier quarantine generation are ignored.
+
+The controller removes downstream source-drop rules first, confirms them with OpenFlow barriers, and reads fresh ingress counters again. It removes the source's ingress block last. The source stays in the software blocked set until all removals are acknowledged. If activity resumes or an acknowledgement fails, the block is restored and recovery is deferred.
+
+The accepted EMA baseline and accounting samples are retained, so a recovered source remains subject to normal detection and a later flood can be blocked again. The 30-second link-cost anomaly penalty has its own timer and may expire before source recovery.
+
+| Constant | Default | Meaning |
+| --- | --- | --- |
+| `SOURCE_RECOVERY_QUIET_SECONDS` | `50.0` | Required interval without renewed anomalous-rate traffic |
+| `RECOVERY_STATS_MAX_AGE` | `3.0` | Maximum age of counter observations used for recovery |
+
+### Manual recovery check
+
+Start the controller and topology as described above. At the Mininet prompt, train normal h2-to-h3 traffic and then run a bounded ten-second flood.
+
+```text
+h2 ping -c 5 h3
+h2 timeout --signal=INT 10s hping3 --icmp --flood 10.0.0.3
+h2 ping -c 1 -W 1 h3
+```
+
+The immediate ping should fail while h2 is quarantined. Keep the same controller running and allow the quiet interval plus polling overhead to complete.
+
+```text
+sh sleep 55
+h2 ping -c 3 -W 1 h3
+h3 ping -c 3 -W 1 h2
+pingall
+```
+
+Expect `SOURCE_RECOVERED source=10.0.0.2` in the controller log, successful pings in both directions, and 30/30 received in `pingall`. Continued traffic above the anomaly threshold will postpone that release.
+
+### Repeatable recovery tests
+
+With the previous controller and topology stopped, run inside the VM.
+
+```bash
+cd ~/MininetLab
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest -v test_source_recovery.py test_dynamic_cost.py
+sudo env PYTHONDONTWRITEBYTECODE=1 python3 -u test_source_recovery_live.py
+```
+
+The live test starts one controller, runs a ten-second h2-to-h3 flood, checks that h2 stays blocked during quarantine, sends low-rate probes, waits for automatic release, verifies bidirectional connectivity and `pingall`, and then checks that a renewed flood is detected. It cleans up its controller and network. Evidence is saved under `results/source_recovery`.
+
+Verification on 11 November 2026 passed all 11 focused tests. The live run blocked the first flood after 1.11 seconds and observed recovery 52.15 seconds after the flood process stopped. The controller reported 50.059 seconds since the last observed anomalous-rate sample. All six drop rules were removed, both directional ping checks passed, and `pingall` returned 30/30 received. The same controller blocked a second flood after 0.70 seconds. H1-to-h6 connectivity also passed during quarantine.
 
 ## Dynamic Link-Cost Update
 ### Original costs and units

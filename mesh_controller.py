@@ -32,6 +32,10 @@ class MeshController(app_manager.RyuApp):
     MIN_THRESHOLD_PPS = 50.0
     MONITOR_COOKIE = 0x51010001
     BLOCK_COOKIE = 0x51010002
+    # Recovery is based on observed blocked-packet rates. A renewed anomaly
+    # restarts this interval; ordinary low-rate probes do not extend it.
+    SOURCE_RECOVERY_QUIET_SECONDS = 50.0
+    RECOVERY_STATS_MAX_AGE = 3.0
 
     # These coefficients are expressed in the same cost units as delay (ms).
     # The routing load coefficient is separate from EMA_ALPHA, which controls
@@ -87,6 +91,8 @@ print(json.dumps({
         self.flow_samples = {}
         self.source_baselines = {}
         self.blocked_sources = set()
+        self.source_quarantines = {}
+        self.block_requests = {}
         self.stats_parts = {}
         self.port_peers = {}
         self.port_samples = {}
@@ -295,11 +301,22 @@ print(json.dumps({
         for key, route in list(self.routes.items()):
             if dpid in route["path"]:
                 self.remove_route(key)
+        # A reconnect resets switch counters, so establish a new observation
+        # window rather than treating an unavailable switch as a quiet source.
+        for quarantine in self.source_quarantines.values():
+            quarantine["samples"].pop(dpid, None)
+            quarantine["last_anomaly"] = time.monotonic()
 
     def monitor(self):
         """Poll source counters, route activity, and physical mesh-port load."""
         while True:
             now = time.monotonic()
+            for key, request in list(self.block_requests.items()):
+                if now - request["sent"] > self.RECOVERY_STATS_MAX_AGE:
+                    self.block_requests.pop(key, None)
+                    self.stats_parts.pop(key, None)
+                    request["event"].set()
+            self.recover_ready_sources(now)
             for key, route in list(self.routes.items()):
                 if not route.get("switching") and now - route["last_active"] > self.ROUTE_IDLE_SECONDS:
                     self.remove_route(key)
@@ -310,6 +327,9 @@ print(json.dumps({
             self.write_telemetry(now)
             for datapath in list(self.datapaths.values()):
                 parser = datapath.ofproto_parser
+                if self.source_quarantines and not any(
+                        key[0] == datapath.id for key in self.block_requests):
+                    self.request_block_stats(datapath)
                 datapath.send_msg(parser.OFPFlowStatsRequest(
                     datapath, table_id=0, cookie=self.MONITOR_COOKIE,
                     cookie_mask=0xffffffffffffffff))
@@ -332,6 +352,8 @@ print(json.dumps({
         """
         msg = ev.msg
         dpid = msg.datapath.id
+        if self.datapaths.get(dpid) is not msg.datapath:
+            return
         # Large replies can span several OpenFlow messages. Evaluate the source
         # only after receiving every part of this polling response.
         reply_key = (dpid, msg.xid)
@@ -340,6 +362,10 @@ print(json.dumps({
         if msg.flags & msg.datapath.ofproto.OFPMPF_REPLY_MORE:
             return
         rows = self.stats_parts.pop(reply_key)
+        request = self.block_requests.pop(reply_key, None)
+        if request is not None:
+            self.block_stats_received(msg.datapath, rows, request)
+            return
         for flow in rows:
             if flow.cookie & self.ROUTE_COOKIE_MASK == self.ROUTE_COOKIE_PREFIX:
                 key = (flow.match.get("ipv4_src"), flow.match.get("ipv4_dst"))
@@ -385,7 +411,7 @@ print(json.dumps({
                 self.logger.warning(
                     "ANOMALY source=%s rate=%.2f pps baseline=%.2f threshold=%.2f",
                     source, rate, baseline, threshold)
-                self.blocked_sources.add(source)
+                self.begin_quarantine(source)
                 self.mark_anomaly_paths(source, dpid)
                 for datapath in list(self.datapaths.values()):
                     self.install_block(datapath, source)
@@ -574,7 +600,12 @@ print(json.dumps({
         if not self.telemetry_path:
             return
         record = {"time": now, "blocked": sorted(self.blocked_sources),
-                  "links": {}, "routes": {}}
+                  "links": {}, "routes": {}, "source_recovery": {}}
+        for source, quarantine in self.source_quarantines.items():
+            record["source_recovery"][source] = {
+                "last_anomaly": quarantine["last_anomaly"],
+                "quiet_seconds": max(0, now - quarantine["last_anomaly"]),
+                "recovering": quarantine["recovering"]}
         for a, b, edge in self.graph.edges(data=True):
             record["links"]["s%d-s%d" % (min(a, b), max(a, b))] = {
                 name: edge[name] for name in ("base_cost", "weight", "rate_bps",
@@ -661,12 +692,160 @@ print(json.dumps({
         self.logger.warning("ANOMALY_LINKS source=%s edges=%s hold_seconds=%.1f",
                             source, sorted(affected), self.ANOMALY_HOLD_SECONDS)
 
+    def begin_quarantine(self, source):
+        """Start a new recovery generation, preserving the accepted source EMA."""
+        self.blocked_sources.add(source)
+        self.source_quarantines[source] = {
+            "last_anomaly": time.monotonic(), "samples": {}, "recovering": False}
+
+    def request_block_stats(self, datapath):
+        """Poll drop rules, which still count traffic while forwarding is blocked.
+
+        Ordinary ingress-accounting rules are bypassed by the higher-priority
+        drop rule. Their lack of traffic cannot establish that a flood stopped.
+        Retain the actual quarantine objects to reject late replies belonging
+        to a previous block/recovery generation. Empty replies are identifiable
+        by request XID and can trigger repair of a missing firewall rule.
+        """
+        parser = datapath.ofproto_parser
+        message = parser.OFPFlowStatsRequest(
+            datapath, table_id=0, cookie=self.BLOCK_COOKIE,
+            cookie_mask=0xffffffffffffffff)
+        datapath.set_xid(message)
+        request = {"sent": time.monotonic(), "sources": dict(self.source_quarantines),
+                   "event": hub.Event(), "complete": False, "present": set()}
+        self.block_requests[datapath.id, message.xid] = request
+        datapath.send_msg(message)
+        return request
+
+    def block_stats_received(self, datapath, rows, request):
+        """Classify continued traffic using drop-counter deltas and the normal threshold.
+
+        The busiest switch's source-drop rate avoids double-counting residual
+        in-flight packets seen at several switches. After ingress blocking takes
+        effect, the source's access switch normally accounts for all attempts.
+        Require fresh samples from every topology switch before recovery.
+        """
+        now = time.monotonic()
+        entries = {flow.match.get("ipv4_src"): flow for flow in rows
+                   if flow.cookie == self.BLOCK_COOKIE and flow.priority == 100}
+        for source, quarantine in request["sources"].items():
+            if self.source_quarantines.get(source) is not quarantine:
+                continue
+            flow = entries.get(source)
+            if flow is None or flow.packet_count == 0xffffffffffffffff:
+                # Recovery intentionally deletes rules. Otherwise a missing
+                # rule is uncertainty requiring repair and a new quiet window.
+                if not quarantine["recovering"]:
+                    quarantine["samples"].pop(datapath.id, None)
+                    quarantine["last_anomaly"] = now
+                    self.install_block(datapath, source)
+                continue
+            duration = flow.duration_sec + flow.duration_nsec / 1e9
+            previous = quarantine["samples"].get(datapath.id)
+            rate = 0.0
+            if (previous is None or previous["datapath"] is not datapath
+                    or duration < previous["duration"] or flow.packet_count < previous["count"]):
+                quarantine["last_anomaly"] = now
+            elif duration > previous["duration"]:
+                rate = (flow.packet_count - previous["count"]) / (duration - previous["duration"])
+            else:
+                # A duplicate/nonadvancing sample cannot confirm a fresh quiet interval.
+                continue
+            quarantine["samples"][datapath.id] = {
+                "count": flow.packet_count, "duration": duration,
+                "seen": now, "rate": rate, "datapath": datapath}
+            request["present"].add(source)
+            threshold = max(self.MIN_THRESHOLD_PPS,
+                            self.ANOMALY_MULTIPLIER * self.source_baselines.get(source, 1.0))
+            observed_rate = max(sample["rate"] for sample in quarantine["samples"].values())
+            if observed_rate > threshold:
+                quarantine["last_anomaly"] = now
+        request["complete"] = True
+        request["event"].set()
+
+    def recovery_ready(self, quarantine, now):
+        """Missing telemetry or a disconnected switch pauses automatic release."""
+        if now - quarantine["last_anomaly"] < self.SOURCE_RECOVERY_QUIET_SECONDS:
+            return False
+        for switch in self.graph:
+            sample = quarantine["samples"].get(switch)
+            if (sample is None or self.datapaths.get(switch) is not sample["datapath"]
+                    or now - sample["seen"] > self.RECOVERY_STATS_MAX_AGE):
+                return False
+        return True
+
+    def recover_ready_sources(self, now):
+        for source, quarantine in list(self.source_quarantines.items()):
+            if not quarantine["recovering"] and self.recovery_ready(quarantine, now):
+                quarantine["recovering"] = True
+                hub.spawn(self.recover_source, source, quarantine)
+
+    def delete_source_block(self, datapath, source):
+        """Delete only the exact source firewall rule, then acknowledge it."""
+        parser, ofp = datapath.ofproto_parser, datapath.ofproto
+        errors = self.switch_errors.get(datapath.id, 0)
+        datapath.send_msg(parser.OFPFlowMod(
+            datapath=datapath, table_id=0, command=ofp.OFPFC_DELETE_STRICT,
+            cookie=self.BLOCK_COOKIE, cookie_mask=0xffffffffffffffff,
+            priority=100, out_port=ofp.OFPP_ANY, out_group=ofp.OFPG_ANY,
+            match=parser.OFPMatch(eth_type=0x0800, ipv4_src=source)))
+        self.wait_for_barrier(datapath)
+        if self.switch_errors.get(datapath.id, 0) != errors:
+            raise RuntimeError("OpenFlow error removing source block")
+
+    def recover_source(self, source, quarantine):
+        """Remove downstream drops first and the source's ingress drop last.
+
+        Keep the software blocked-source guard active until all removals are
+        acknowledged. Recheck ingress counters just before release. If activity
+        resumes or an acknowledgement fails, reinstall drops and keep the host
+        quarantined. This worker can wait while the event handler processes
+        counter and barrier replies. No controller restart is needed.
+        """
+        switches = dict(self.datapaths)
+        ingress = self.host_attachments[source][0]
+        try:
+            if not self.recovery_ready(quarantine, time.monotonic()):
+                raise RuntimeError("Recovery observations expired")
+            for switch, datapath in switches.items():
+                if switch != ingress:
+                    self.delete_source_block(datapath, source)
+            request = self.request_block_stats(switches[ingress])
+            request["event"].wait(timeout=self.RECOVERY_STATS_MAX_AGE)
+            if (not request["complete"] or source not in request["present"]
+                    or time.monotonic() - quarantine["last_anomaly"] < self.SOURCE_RECOVERY_QUIET_SECONDS
+                    or self.source_quarantines.get(source) is not quarantine
+                    or self.datapaths != switches):
+                raise RuntimeError("Source activity or switch state changed during recovery")
+            self.delete_source_block(switches[ingress], source)
+            # Baselines and accounting snapshots are retained. An attack sample
+            # never trains the EMA, and a renewed flood remains detectable.
+            self.blocked_sources.remove(source)
+            self.source_quarantines.pop(source)
+            self.logger.info("SOURCE_RECOVERED source=%s quiet_seconds=%.3f",
+                             source, time.monotonic() - quarantine["last_anomaly"])
+        except Exception:
+            self.logger.exception("SOURCE_RECOVERY_DEFERRED source=%s", source)
+            if self.source_quarantines.get(source) is quarantine:
+                quarantine["last_anomaly"] = time.monotonic()
+                quarantine["samples"].clear()
+                for datapath in list(self.datapaths.values()):
+                    try:
+                        self.install_block(datapath, source)
+                        self.wait_for_barrier(datapath)
+                    except Exception:
+                        self.logger.exception("SOURCE_BLOCK_RESTORE_FAILED source=%s switch=s%d",
+                                              source, datapath.id)
+        finally:
+            quarantine["recovering"] = False
+
     def install_block(self, datapath, source):
         """Drop this source IP before forwarding, preserving every mesh link.
 
         An empty action list drops matching packets. Priority 100 overrides
         accounting and echo-reply exceptions. Zero timeouts keep the source
-        blocked until this controller is restarted. Apply on every switch to
+        blocked until explicit recovery removes the rule. Apply on every switch to
         cover packets already in flight and later traffic on alternative paths.
         """
         self.add_flow(datapath, 100,

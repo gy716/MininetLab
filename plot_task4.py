@@ -157,8 +157,8 @@ report = [
 "Original link delays and bandwidths were preserved.", "",
 "## Active-route design", "",
 "The cost is C0 + 30 × utilization + 50 × anomaly. Utilization uses the busier TX direction divided by "
-"40 Mbit/s, capped at 1. The anomaly term lasts 30 seconds after detection. The source firewall block persists "
-"for the controller session.", "",
+"40 Mbit/s, capped at 1. The anomaly term lasts 30 seconds after detection. The source firewall block is "
+"removed after 50 seconds without further anomalous-rate traffic, subject to fresh statistics and acknowledgements.", "",
 "Routes are reconsidered once per second. Migration requires improvement of at least both 2 cost units "
 "and 10%, with a five-second cooldown. Installation proceeds destination-to-source, waiting for each switch's "
 "OpenFlow barrier acknowledgement. Rules match ingress port and IP pair. Old-only entries drain for one second "
@@ -199,7 +199,7 @@ for summary, rows in data:
         "All six switches installed the source block. A three-second destination capture observed zero "
         "post-block attack packets while the flood remained active. The ingress drop counter increased "
         "from **%d to %d**. All 20 legitimate post-attack ping checks passed, and ordinary pings from "
-        "the blocked source failed after the flood stopped." % (summary["drops_before"], summary["drops_after"]), "",
+        "the blocked source failed during quarantine after the flood stopped." % (summary["drops_before"], summary["drops_after"]), "",
         "![Case %s plots](case_%s_plots.png)" % (case.upper(), case), ""]
 report += ["## Interpretation and limits", "",
 "The firewall stops sustained attack forwarding shortly after detection. High link load is consequently a "
