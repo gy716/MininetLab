@@ -1,0 +1,381 @@
+{
+  "controller_pid": 78568,
+  "flood_duration_seconds": 10,
+  "required_quiet_seconds": 50,
+  "initial_pingall_loss": 0.0,
+  "normal_training_ping": "PING 10.0.0.3 (10.0.0.3) 56(84) bytes of data.\r\n64 bytes from 10.0.0.3: icmp_seq=1 ttl=64 time=119 ms\r\n64 bytes from 10.0.0.3: icmp_seq=2 ttl=64 time=208 ms\r\n64 bytes from 10.0.0.3: icmp_seq=3 ttl=64 time=162 ms\r\n64 bytes from 10.0.0.3: icmp_seq=4 ttl=64 time=144 ms\r\n64 bytes from 10.0.0.3: icmp_seq=5 ttl=64 time=150 ms\r\n\r\n--- 10.0.0.3 ping statistics ---\r\n5 packets transmitted, 5 received, 0% packet loss, time 4079ms\r\nrtt min/avg/max/mdev = 118.934/156.668/208.337/29.382 ms\r\n",
+  "block_after_flood_start_seconds": 1.10673427599977,
+  "flood_process_elapsed_seconds": 10.132513316995755,
+  "switches_blocking_after_flood": [
+    "s1",
+    "s2",
+    "s3",
+    "s4",
+    "s5",
+    "s6"
+  ],
+  "legitimate_ping_during_quarantine": "PING 10.0.0.6 (10.0.0.6) 56(84) bytes of data.\r\n64 bytes from 10.0.0.6: icmp_seq=1 ttl=64 time=172 ms\r\n64 bytes from 10.0.0.6: icmp_seq=2 ttl=64 time=139 ms\r\n64 bytes from 10.0.0.6: icmp_seq=3 ttl=64 time=201 ms\r\n\r\n--- 10.0.0.6 ping statistics ---\r\n3 packets transmitted, 3 received, 0% packet loss, time 2040ms\r\nrtt min/avg/max/mdev = 139.302/170.597/200.699/25.079 ms\r\n",
+  "recovered_after_flood_stop_seconds": 52.150464607002505,
+  "blocked_probes": {
+    "10": "PING 10.0.0.3 (10.0.0.3) 56(84) bytes of data.\r\n\r\n--- 10.0.0.3 ping statistics ---\r\n1 packets transmitted, 0 received, 100% packet loss, time 0ms\r\n\r\n",
+    "30": "PING 10.0.0.3 (10.0.0.3) 56(84) bytes of data.\r\n\r\n--- 10.0.0.3 ping statistics ---\r\n1 packets transmitted, 0 received, 100% packet loss, time 0ms\r\n\r\n",
+    "45": "PING 10.0.0.3 (10.0.0.3) 56(84) bytes of data.\r\n\r\n--- 10.0.0.3 ping statistics ---\r\n1 packets transmitted, 0 received, 100% packet loss, time 0ms\r\n\r\n"
+  },
+  "observations": [
+    {
+      "seconds_after_stop": 0.053378163000161294,
+      "drop_counter": 596607
+    },
+    {
+      "seconds_after_stop": 0.5689768220036058,
+      "drop_counter": 596607
+    },
+    {
+      "seconds_after_stop": 1.100893315000576,
+      "drop_counter": 596607
+    },
+    {
+      "seconds_after_stop": 1.6436539749993244,
+      "drop_counter": 596607
+    },
+    {
+      "seconds_after_stop": 2.1914002150006127,
+      "drop_counter": 596607
+    },
+    {
+      "seconds_after_stop": 2.7336017880006693,
+      "drop_counter": 596607
+    },
+    {
+      "seconds_after_stop": 3.2605175339995185,
+      "drop_counter": 596607
+    },
+    {
+      "seconds_after_stop": 3.821796878997702,
+      "drop_counter": 596607
+    },
+    {
+      "seconds_after_stop": 4.35245423699962,
+      "drop_counter": 596607
+    },
+    {
+      "seconds_after_stop": 4.88320413800102,
+      "drop_counter": 596607
+    },
+    {
+      "seconds_after_stop": 5.4104825949980295,
+      "drop_counter": 596607
+    },
+    {
+      "seconds_after_stop": 5.958854381999117,
+      "drop_counter": 596607
+    },
+    {
+      "seconds_after_stop": 6.485976420997758,
+      "drop_counter": 596607
+    },
+    {
+      "seconds_after_stop": 7.016904197997064,
+      "drop_counter": 596607
+    },
+    {
+      "seconds_after_stop": 7.543335189999198,
+      "drop_counter": 596607
+    },
+    {
+      "seconds_after_stop": 8.065695317003701,
+      "drop_counter": 596607
+    },
+    {
+      "seconds_after_stop": 8.648743038997054,
+      "drop_counter": 596607
+    },
+    {
+      "seconds_after_stop": 9.183224635002261,
+      "drop_counter": 596607
+    },
+    {
+      "seconds_after_stop": 9.78861557199707,
+      "drop_counter": 596607
+    },
+    {
+      "seconds_after_stop": 10.350394212997344,
+      "drop_counter": 596607
+    },
+    {
+      "seconds_after_stop": 11.964790543999698,
+      "drop_counter": 596608
+    },
+    {
+      "seconds_after_stop": 12.519683799000632,
+      "drop_counter": 596608
+    },
+    {
+      "seconds_after_stop": 13.047519760002615,
+      "drop_counter": 596608
+    },
+    {
+      "seconds_after_stop": 13.618275344997528,
+      "drop_counter": 596608
+    },
+    {
+      "seconds_after_stop": 14.150010586999997,
+      "drop_counter": 596608
+    },
+    {
+      "seconds_after_stop": 14.680552611003804,
+      "drop_counter": 596608
+    },
+    {
+      "seconds_after_stop": 15.208480073000828,
+      "drop_counter": 596608
+    },
+    {
+      "seconds_after_stop": 15.774925999998231,
+      "drop_counter": 596608
+    },
+    {
+      "seconds_after_stop": 16.305831735000538,
+      "drop_counter": 596608
+    },
+    {
+      "seconds_after_stop": 16.8616246629972,
+      "drop_counter": 596608
+    },
+    {
+      "seconds_after_stop": 17.399355950001336,
+      "drop_counter": 596608
+    },
+    {
+      "seconds_after_stop": 17.938073037999857,
+      "drop_counter": 596608
+    },
+    {
+      "seconds_after_stop": 18.474752900998283,
+      "drop_counter": 596608
+    },
+    {
+      "seconds_after_stop": 19.033498142998724,
+      "drop_counter": 596608
+    },
+    {
+      "seconds_after_stop": 19.58443490799982,
+      "drop_counter": 596608
+    },
+    {
+      "seconds_after_stop": 20.116840196998965,
+      "drop_counter": 596608
+    },
+    {
+      "seconds_after_stop": 22.89187534699886,
+      "drop_counter": 596608
+    },
+    {
+      "seconds_after_stop": 23.41786850200151,
+      "drop_counter": 596608
+    },
+    {
+      "seconds_after_stop": 23.949025697998877,
+      "drop_counter": 596608
+    },
+    {
+      "seconds_after_stop": 24.503086529002758,
+      "drop_counter": 596608
+    },
+    {
+      "seconds_after_stop": 25.09448448200419,
+      "drop_counter": 596608
+    },
+    {
+      "seconds_after_stop": 25.624035207001725,
+      "drop_counter": 596608
+    },
+    {
+      "seconds_after_stop": 26.205894961000013,
+      "drop_counter": 596608
+    },
+    {
+      "seconds_after_stop": 26.788992642002995,
+      "drop_counter": 596608
+    },
+    {
+      "seconds_after_stop": 27.336681382003007,
+      "drop_counter": 596608
+    },
+    {
+      "seconds_after_stop": 27.88822427699779,
+      "drop_counter": 596608
+    },
+    {
+      "seconds_after_stop": 28.43127477300004,
+      "drop_counter": 596608
+    },
+    {
+      "seconds_after_stop": 28.960882664003293,
+      "drop_counter": 596608
+    },
+    {
+      "seconds_after_stop": 29.4983581589986,
+      "drop_counter": 596608
+    },
+    {
+      "seconds_after_stop": 30.055477888003225,
+      "drop_counter": 596608
+    },
+    {
+      "seconds_after_stop": 31.602360946999397,
+      "drop_counter": 596609
+    },
+    {
+      "seconds_after_stop": 32.17993266900157,
+      "drop_counter": 596609
+    },
+    {
+      "seconds_after_stop": 32.75026158399851,
+      "drop_counter": 596609
+    },
+    {
+      "seconds_after_stop": 33.318704400997376,
+      "drop_counter": 596609
+    },
+    {
+      "seconds_after_stop": 33.85031905800133,
+      "drop_counter": 596609
+    },
+    {
+      "seconds_after_stop": 34.377587932001916,
+      "drop_counter": 596609
+    },
+    {
+      "seconds_after_stop": 34.91706494199752,
+      "drop_counter": 596609
+    },
+    {
+      "seconds_after_stop": 35.448692516001756,
+      "drop_counter": 596609
+    },
+    {
+      "seconds_after_stop": 35.97957695899822,
+      "drop_counter": 596609
+    },
+    {
+      "seconds_after_stop": 36.53072197599977,
+      "drop_counter": 596609
+    },
+    {
+      "seconds_after_stop": 37.05839297800412,
+      "drop_counter": 596609
+    },
+    {
+      "seconds_after_stop": 37.61981365799875,
+      "drop_counter": 596609
+    },
+    {
+      "seconds_after_stop": 38.18403823400149,
+      "drop_counter": 596609
+    },
+    {
+      "seconds_after_stop": 38.721806189001654,
+      "drop_counter": 596609
+    },
+    {
+      "seconds_after_stop": 39.25050661499699,
+      "drop_counter": 596609
+    },
+    {
+      "seconds_after_stop": 39.776467103998584,
+      "drop_counter": 596609
+    },
+    {
+      "seconds_after_stop": 40.30293722100032,
+      "drop_counter": 596609
+    },
+    {
+      "seconds_after_stop": 40.855700667001656,
+      "drop_counter": 596609
+    },
+    {
+      "seconds_after_stop": 41.406006760997116,
+      "drop_counter": 596609
+    },
+    {
+      "seconds_after_stop": 41.95037155799946,
+      "drop_counter": 596609
+    },
+    {
+      "seconds_after_stop": 42.49722891700367,
+      "drop_counter": 596609
+    },
+    {
+      "seconds_after_stop": 43.03323306600214,
+      "drop_counter": 596609
+    },
+    {
+      "seconds_after_stop": 43.59477399699972,
+      "drop_counter": 596609
+    },
+    {
+      "seconds_after_stop": 44.12140565700247,
+      "drop_counter": 596609
+    },
+    {
+      "seconds_after_stop": 44.65477491199999,
+      "drop_counter": 596609
+    },
+    {
+      "seconds_after_stop": 45.19199869500153,
+      "drop_counter": 596609
+    },
+    {
+      "seconds_after_stop": 46.740011845999106,
+      "drop_counter": 596610
+    },
+    {
+      "seconds_after_stop": 47.289761018997524,
+      "drop_counter": 596610
+    },
+    {
+      "seconds_after_stop": 47.82193238900072,
+      "drop_counter": 596610
+    },
+    {
+      "seconds_after_stop": 48.36560780600121,
+      "drop_counter": 596610
+    },
+    {
+      "seconds_after_stop": 48.946757388999686,
+      "drop_counter": 596610
+    },
+    {
+      "seconds_after_stop": 49.48800945399853,
+      "drop_counter": 596610
+    },
+    {
+      "seconds_after_stop": 50.017256635001104,
+      "drop_counter": 596610
+    },
+    {
+      "seconds_after_stop": 50.551884772998164,
+      "drop_counter": 596610
+    },
+    {
+      "seconds_after_stop": 51.079229314003896,
+      "drop_counter": 596610
+    },
+    {
+      "seconds_after_stop": 51.615983303003304,
+      "drop_counter": 596610
+    },
+    {
+      "seconds_after_stop": 52.150464607002505,
+      "drop_counter": null
+    }
+  ],
+  "remaining_block_rules": [],
+  "recovered_h2_to_h3": "PING 10.0.0.3 (10.0.0.3) 56(84) bytes of data.\r\n64 bytes from 10.0.0.3: icmp_seq=1 ttl=64 time=117 ms\r\n64 bytes from 10.0.0.3: icmp_seq=2 ttl=64 time=144 ms\r\n64 bytes from 10.0.0.3: icmp_seq=3 ttl=64 time=136 ms\r\n\r\n--- 10.0.0.3 ping statistics ---\r\n3 packets transmitted, 3 received, 0% packet loss, time 2101ms\r\nrtt min/avg/max/mdev = 116.974/132.315/144.141/11.366 ms\r\n",
+  "recovered_h3_to_h2": "PING 10.0.0.2 (10.0.0.2) 56(84) bytes of data.\r\n64 bytes from 10.0.0.2: icmp_seq=1 ttl=64 time=155 ms\r\n64 bytes from 10.0.0.2: icmp_seq=2 ttl=64 time=205 ms\r\n64 bytes from 10.0.0.2: icmp_seq=3 ttl=64 time=236 ms\r\n\r\n--- 10.0.0.2 ping statistics ---\r\n3 packets transmitted, 3 received, 0% packet loss, time 2045ms\r\nrtt min/avg/max/mdev = 154.900/198.625/236.124/33.450 ms\r\n",
+  "recovered_pingall_loss": 0.0,
+  "reblocked_after_new_flood_seconds": 0.6974003149953205,
+  "same_controller_throughout": true,
+  "passed": true
+}

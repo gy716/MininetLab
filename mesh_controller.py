@@ -26,22 +26,22 @@ class MeshController(app_manager.RyuApp):
     # Poll ingress flow counters once per second. Rates are packets/second.
     # Compare each sample with the PREVIOUS baseline before updating the EMA,
     # otherwise an attack would immediately raise its own detection threshold.
-    POLL_SECONDS = 1.0
+    POLL_SECONDS = 0.5
     EMA_ALPHA = 0.2
     ANOMALY_MULTIPLIER = 5.0
-    MIN_THRESHOLD_PPS = 50.0
+    MIN_THRESHOLD_PPS = 1500.0
     MONITOR_COOKIE = 0x51010001
     BLOCK_COOKIE = 0x51010002
     # Recovery is based on observed blocked-packet rates. A renewed anomaly
     # restarts this interval; ordinary low-rate probes do not extend it.
-    SOURCE_RECOVERY_QUIET_SECONDS = 50.0
+    SOURCE_RECOVERY_QUIET_SECONDS = 30.0
     RECOVERY_STATS_MAX_AGE = 3.0
 
     # These coefficients are expressed in the same cost units as delay (ms).
     # The routing load coefficient is separate from EMA_ALPHA, which controls
     # source anomaly detection. A fully utilized link adds 30 cost units.
-    LOAD_COST_ALPHA = 30.0
-    ANOMALY_COST_BETA = 50.0
+    LOAD_COST_ALPHA = 4.0
+    ANOMALY_COST_BETA = 20.0
     ANOMALY_HOLD_SECONDS = 30.0
     ROUTE_IDLE_SECONDS = 10.0
     ROUTE_COOKIE_PREFIX = 0x5102000000000000
