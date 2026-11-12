@@ -26,7 +26,7 @@ class MeshController(app_manager.RyuApp):
     # Poll ingress flow counters at the configured interval. Rates are packets/second.
     # Compare each sample with the PREVIOUS baseline before updating the EMA,
     # otherwise an attack would immediately raise its own detection threshold.
-    POLL_SECONDS = 0.5
+    POLL_SECONDS = 2
     EMA_ALPHA = 0.2
     ANOMALY_MULTIPLIER = 5.0
     MIN_THRESHOLD_PPS = 1500.0

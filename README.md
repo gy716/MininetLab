@@ -51,7 +51,7 @@ The comparison uses the previous baseline. An anomalous sample is excluded from 
 
 | Constant | Default | Meaning |
 | --- | --- | --- |
-| `POLL_SECONDS` | `1.0` | Flow-statistics polling interval |
+| `POLL_SECONDS` | `2.0` | Flow-statistics polling interval |
 | `EMA_ALPHA` | `0.2` | Weight assigned to the newest accepted sample |
 | `ANOMALY_MULTIPLIER` | `5.0` | Source EMA multiplier |
 | `MIN_THRESHOLD_PPS` | `1500.0` | Minimum anomaly threshold in packets/s |
@@ -344,4 +344,4 @@ recovery markers. All three cases passed the firewall-rule, destination-capture,
 drop-counter and recovered-connectivity checks; recovered pingall received
 30 out of 30 replies.
 
-![Plot](results/task4_iperf/task4_iperf.png)
+![Plot](results/task4_iperf_poll2_20261112/task4_iperf.png)

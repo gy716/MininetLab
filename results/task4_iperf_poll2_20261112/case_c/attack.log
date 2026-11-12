@@ -1,0 +1,6 @@
+hping in flood mode, no replies will be shown
+
+--- 10.0.0.6 hping statistic ---
+6267549 packets transmitted, 0 packets received, 100% packet loss
+round-trip min/avg/max = 0.0/0.0/0.0 ms
+HPING 10.0.0.6 (h5-eth0 10.0.0.6): icmp mode set, 28 headers + 0 data bytes

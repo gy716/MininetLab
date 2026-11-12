@@ -1,0 +1,112 @@
+BASELINE source=10.0.0.1 rate=893.55 pps ema=881.24 threshold=4390.81
+BASELINE source=10.0.0.3 rate=2.00 pps ema=7.97 threshold=1500.00
+BASELINE source=10.0.0.4 rate=2.50 pps ema=9.78 threshold=1500.00
+BASELINE source=10.0.0.6 rate=2.50 pps ema=10.01 threshold=1500.00
+BASELINE source=10.0.0.5 rate=2.50 pps ema=8.19 threshold=1500.00
+BASELINE source=10.0.0.4 rate=2.50 pps ema=8.32 threshold=1500.00
+BASELINE source=10.0.0.6 rate=0.50 pps ema=8.11 threshold=1500.00
+BASELINE source=10.0.0.5 rate=2.50 pps ema=7.05 threshold=1500.00
+BASELINE source=10.0.0.3 rate=2.50 pps ema=6.88 threshold=1500.00
+BASELINE source=10.0.0.2 rate=2.50 pps ema=9.89 threshold=1500.00
+BASELINE source=10.0.0.1 rate=893.11 pps ema=883.61 threshold=4406.21
+BASELINE source=10.0.0.1 rate=892.16 pps ema=885.32 threshold=4418.07
+BASELINE source=10.0.0.6 rate=2.00 pps ema=6.89 threshold=1500.00
+BASELINE source=10.0.0.1 rate=897.60 pps ema=887.78 threshold=4426.62
+BASELINE source=10.0.0.1 rate=893.55 pps ema=888.93 threshold=4438.90
+BASELINE source=10.0.0.1 rate=892.16 pps ema=889.58 threshold=4444.67
+BASELINE source=10.0.0.1 rate=892.16 pps ema=890.10 threshold=4447.90
+BASELINE source=10.0.0.1 rate=842.66 pps ema=880.61 threshold=4450.48
+BASELINE source=10.0.0.1 rate=881.06 pps ema=880.70 threshold=4403.04
+BASELINE source=10.0.0.1 rate=893.05 pps ema=883.17 threshold=4403.49
+ROUTE source=10.0.0.2 destination=10.0.0.6 path=[2, 6] cost=15.079
+ROUTE source=10.0.0.6 destination=10.0.0.2 path=[6, 2] cost=15.079
+ANOMALY source=10.0.0.2 rate=18170.41 pps baseline=9.89 threshold=1500.00
+LINK_COST s2-s6 base=14.000 rate=10785023 bps utilization=0.2696 anomaly=1 cost=35.079
+ANOMALY_LINKS source=10.0.0.2 edges=[(2, 6)] hold_seconds=30.0
+FIREWALL source=10.0.0.2 switch=s1 action=drop
+FIREWALL source=10.0.0.2 switch=s2 action=drop
+FIREWALL source=10.0.0.2 switch=s3 action=drop
+FIREWALL source=10.0.0.2 switch=s4 action=drop
+FIREWALL source=10.0.0.2 switch=s5 action=drop
+FIREWALL source=10.0.0.2 switch=s6 action=drop
+LINK_COST s2-s6 base=14.000 rate=19754595 bps utilization=0.4939 anomaly=1 cost=35.975
+BASELINE source=10.0.0.1 rate=973.51 pps ema=901.24 threshold=4415.85
+LINK_COST s2-s6 base=14.000 rate=11002813 bps utilization=0.2751 anomaly=1 cost=35.100
+BASELINE source=10.0.0.1 rate=814.28 pps ema=883.85 threshold=4506.19
+REROUTE time=76727.640836 source=10.0.0.6 destination=10.0.0.1 old=[6, 2, 1] new=[6, 3, 2, 1] old_cost=42.055 new_cost=23.079
+REROUTE time=76727.641036 source=10.0.0.1 destination=10.0.0.6 old=[1, 2, 6] new=[1, 2, 3, 6] old_cost=42.055 new_cost=23.079
+LINK_COST s3-s6 base=7.000 rate=10639216 bps utilization=0.2660 anomaly=0 cost=8.064
+BASELINE source=10.0.0.1 rate=895.55 pps ema=886.19 threshold=4419.23
+LINK_COST s2-s6 base=14.000 rate=127072 bps utilization=0.0032 anomaly=1 cost=34.013
+LINK_COST s2-s3 base=10.000 rate=10680844 bps utilization=0.2670 anomaly=0 cost=11.068
+BASELINE source=10.0.0.1 rate=893.55 pps ema=887.66 threshold=4430.94
+BASELINE source=10.0.0.1 rate=892.16 pps ema=888.56 threshold=4438.30
+BASELINE source=10.0.0.1 rate=893.55 pps ema=889.56 threshold=4442.80
+BASELINE source=10.0.0.1 rate=1107.89 pps ema=933.23 threshold=4447.80
+BASELINE source=10.0.0.1 rate=672.66 pps ema=881.11 threshold=4666.13
+BASELINE source=10.0.0.1 rate=1112.00 pps ema=927.29 threshold=4405.57
+BASELINE source=10.0.0.1 rate=891.66 pps ema=920.16 threshold=4636.45
+BASELINE source=10.0.0.1 rate=892.66 pps ema=914.66 threshold=4600.82
+BASELINE source=10.0.0.1 rate=893.05 pps ema=910.34 threshold=4573.32
+BASELINE source=10.0.0.1 rate=892.61 pps ema=906.79 threshold=4551.71
+BASELINE source=10.0.0.1 rate=671.49 pps ema=859.73 threshold=4533.97
+BASELINE source=10.0.0.1 rate=892.16 pps ema=866.22 threshold=4298.67
+LINK_COST s2-s6 base=14.000 rate=0 bps utilization=0.0000 anomaly=0 cost=14.000
+BASELINE source=10.0.0.1 rate=893.11 pps ema=871.60 threshold=4331.10
+REROUTE time=76755.670788 source=10.0.0.6 destination=10.0.0.1 old=[6, 3, 2, 1] new=[6, 2, 1] old_cost=25.236 new_cost=20.079
+REROUTE time=76755.670993 source=10.0.0.1 destination=10.0.0.6 old=[1, 2, 3, 6] new=[1, 2, 6] old_cost=25.236 new_cost=20.079
+LINK_COST s2-s6 base=14.000 rate=10677632 bps utilization=0.2669 anomaly=0 cost=15.068
+LINK_COST s2-s3 base=10.000 rate=84545 bps utilization=0.0021 anomaly=0 cost=10.008
+BASELINE source=10.0.0.1 rate=893.11 pps ema=875.90 threshold=4357.99
+LINK_COST s3-s6 base=7.000 rate=120779 bps utilization=0.0030 anomaly=0 cost=7.012
+BASELINE source=10.0.0.1 rate=1111.06 pps ema=922.93 threshold=4379.50
+BASELINE source=10.0.0.1 rate=895.08 pps ema=917.36 threshold=4614.65
+BASELINE source=10.0.0.1 rate=698.25 pps ema=873.54 threshold=4586.80
+BASELINE source=10.0.0.1 rate=893.05 pps ema=877.44 threshold=4367.69
+BASELINE source=10.0.0.1 rate=891.66 pps ema=880.29 threshold=4387.21
+BASELINE source=10.0.0.1 rate=891.66 pps ema=882.56 threshold=4401.43
+SOURCE_RECOVERED source=10.0.0.2 quiet_seconds=30.063
+BASELINE source=10.0.0.1 rate=868.13 pps ema=879.68 threshold=4412.81
+BASELINE source=10.0.0.1 rate=893.11 pps ema=882.36 threshold=4398.38
+ROUTE source=10.0.0.1 destination=10.0.0.3 path=[1, 2, 3] cost=16.079
+ROUTE source=10.0.0.3 destination=10.0.0.1 path=[3, 2, 1] cost=16.079
+ROUTE source=10.0.0.1 destination=10.0.0.4 path=[1, 4] cost=8.000
+ROUTE source=10.0.0.4 destination=10.0.0.1 path=[4, 1] cost=8.000
+ROUTE source=10.0.0.1 destination=10.0.0.5 path=[1, 5] cost=18.000
+ROUTE source=10.0.0.5 destination=10.0.0.1 path=[5, 1] cost=18.000
+ROUTE source=10.0.0.3 destination=10.0.0.4 path=[3, 2, 4] cost=16.000
+ROUTE source=10.0.0.4 destination=10.0.0.3 path=[4, 2, 3] cost=16.000
+ROUTE source=10.0.0.3 destination=10.0.0.5 path=[3, 5] cost=9.000
+ROUTE source=10.0.0.5 destination=10.0.0.3 path=[5, 3] cost=9.000
+ROUTE source=10.0.0.3 destination=10.0.0.6 path=[3, 6] cost=7.000
+ROUTE source=10.0.0.6 destination=10.0.0.3 path=[6, 3] cost=7.000
+BASELINE source=10.0.0.4 rate=1.00 pps ema=6.86 threshold=1500.00
+BASELINE source=10.0.0.1 rate=998.51 pps ema=905.59 threshold=4411.81
+BASELINE source=10.0.0.3 rate=1.99 pps ema=5.90 threshold=1500.00
+ROUTE source=10.0.0.4 destination=10.0.0.5 path=[4, 5] cost=15.000
+ROUTE source=10.0.0.5 destination=10.0.0.4 path=[5, 4] cost=15.000
+ROUTE source=10.0.0.4 destination=10.0.0.6 path=[4, 2, 6] cost=21.062
+ROUTE source=10.0.0.6 destination=10.0.0.4 path=[6, 2, 4] cost=21.062
+ROUTE source=10.0.0.5 destination=10.0.0.6 path=[5, 6] cost=20.000
+ROUTE source=10.0.0.6 destination=10.0.0.5 path=[6, 3, 5] cost=16.000
+ROUTE source=10.0.0.1 destination=10.0.0.2 path=[1, 2] cost=6.071
+ROUTE source=10.0.0.2 destination=10.0.0.1 path=[2, 1] cost=6.071
+ROUTE source=10.0.0.2 destination=10.0.0.3 path=[2, 3] cost=10.000
+ROUTE source=10.0.0.3 destination=10.0.0.2 path=[3, 2] cost=10.000
+ROUTE source=10.0.0.2 destination=10.0.0.4 path=[2, 4] cost=6.000
+ROUTE source=10.0.0.4 destination=10.0.0.2 path=[4, 2] cost=6.000
+ROUTE source=10.0.0.2 destination=10.0.0.5 path=[2, 5] cost=12.000
+ROUTE source=10.0.0.5 destination=10.0.0.2 path=[5, 2] cost=12.000
+BASELINE source=10.0.0.1 rate=1003.49 pps ema=925.17 threshold=4527.95
+BASELINE source=10.0.0.4 rate=1.00 pps ema=5.69 threshold=1500.00
+BASELINE source=10.0.0.2 rate=2.00 pps ema=8.31 threshold=1500.00
+BASELINE source=10.0.0.5 rate=2.00 pps ema=6.04 threshold=1500.00
+BASELINE source=10.0.0.6 rate=2.00 pps ema=5.91 threshold=1500.00
+ROUTE source=10.0.0.2 destination=10.0.0.6 path=[2, 6] cost=15.095
+ROUTE source=10.0.0.6 destination=10.0.0.2 path=[6, 2] cost=15.095
+BASELINE source=10.0.0.1 rate=728.18 pps ema=885.77 threshold=4625.86
+BASELINE source=10.0.0.5 rate=2.50 pps ema=5.33 threshold=1500.00
+BASELINE source=10.0.0.2 rate=0.50 pps ema=6.75 threshold=1500.00
+BASELINE source=10.0.0.4 rate=2.50 pps ema=5.05 threshold=1500.00
+BASELINE source=10.0.0.6 rate=1.00 pps ema=4.93 threshold=1500.00
+BASELINE source=10.0.0.3 rate=2.50 pps ema=5.22 threshold=1500.00
