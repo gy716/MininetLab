@@ -23,13 +23,18 @@ from ryu.lib.packet import packet, ethernet, ether_types, ipv4
 class MeshController(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
 
-    # Poll ingress flow counters once per second. Rates are packets/second.
+    # Poll ingress flow counters at the configured interval. Rates are packets/second.
     # Compare each sample with the PREVIOUS baseline before updating the EMA,
     # otherwise an attack would immediately raise its own detection threshold.
     POLL_SECONDS = 0.5
     EMA_ALPHA = 0.2
     ANOMALY_MULTIPLIER = 5.0
     MIN_THRESHOLD_PPS = 1500.0
+    # Learn each new source under a fixed safety cap for ten seconds of active
+    # observations. Idle gaps cannot silently finish calibration. The cap stays
+    # fixed even if accepted samples raise the EMA during this startup window.
+    WARMUP_SECONDS = 10.0
+    WARMUP_CAP_PPS = 1500.0
     MONITOR_COOKIE = 0x51010001
     BLOCK_COOKIE = 0x51010002
     # Recovery is based on observed blocked-packet rates. A renewed anomaly
@@ -39,7 +44,7 @@ class MeshController(app_manager.RyuApp):
 
     # These coefficients are expressed in the same cost units as delay (ms).
     # The routing load coefficient is separate from EMA_ALPHA, which controls
-    # source anomaly detection. A fully utilized link adds 30 cost units.
+    # source anomaly detection. A fully utilized link adds 4 cost units.
     LOAD_COST_ALPHA = 4.0
     ANOMALY_COST_BETA = 20.0
     ANOMALY_HOLD_SECONDS = 30.0
@@ -90,6 +95,7 @@ print(json.dumps({
         self.datapaths = {}
         self.flow_samples = {}
         self.source_baselines = {}
+        self.source_warmups = {}
         self.blocked_sources = set()
         self.source_quarantines = {}
         self.block_requests = {}
@@ -405,8 +411,7 @@ print(json.dumps({
 
         for source, rate in source_rates.items():
             baseline = self.source_baselines.get(source, 1.0)
-            threshold = max(self.MIN_THRESHOLD_PPS,
-                            self.ANOMALY_MULTIPLIER * baseline)
+            threshold = self.source_threshold(source, rate, time.monotonic())
             if rate > threshold:
                 self.logger.warning(
                     "ANOMALY source=%s rate=%.2f pps baseline=%.2f threshold=%.2f",
@@ -429,6 +434,31 @@ print(json.dumps({
                         self.EMA_ALPHA * sample["rate"] + (1 - self.EMA_ALPHA) * old)
             self.logger.info("BASELINE source=%s rate=%.2f pps ema=%.2f threshold=%.2f",
                              source, rate, updated, threshold)
+
+    def source_threshold(self, source, rate, now):
+        """Advance protected calibration only on fresh, positive observations.
+
+        A short gap represents continuous sampling; a longer gap contributes no
+        learning time. Samples above the fixed cap never train the baseline.
+        The completing sample is still checked against the startup cap; the next
+        sample uses the usual EMA multiplier. This is calibration, not a promise
+        that traffic under the cap is benign. Use representative normal traffic.
+        """
+        state = self.source_warmups.setdefault(source, {
+            "active_seconds": 0.0, "last_seen": None, "complete": False})
+        if state["complete"]:
+            return max(self.MIN_THRESHOLD_PPS,
+                       self.ANOMALY_MULTIPLIER * self.source_baselines.get(source, 1.0))
+        previous = state["last_seen"]
+        state["last_seen"] = now
+        if rate > 0 and rate <= self.WARMUP_CAP_PPS:
+            if previous is not None and 0 < now - previous <= 3 * self.POLL_SECONDS:
+                state["active_seconds"] += now - previous
+            if state["active_seconds"] >= self.WARMUP_SECONDS:
+                state["complete"] = True
+                self.logger.info("WARMUP_COMPLETE source=%s active_seconds=%.3f",
+                                 source, state["active_seconds"])
+        return self.WARMUP_CAP_PPS
 
     def route_ipv4(self, datapath, ingress, source, destination):
         """Select one live-cost path per IPv4 source/destination pair.
@@ -600,7 +630,11 @@ print(json.dumps({
         if not self.telemetry_path:
             return
         record = {"time": now, "blocked": sorted(self.blocked_sources),
-                  "links": {}, "routes": {}, "source_recovery": {}}
+                  "links": {}, "routes": {}, "source_recovery": {},
+                  "warmup": self.source_warmups,
+                  "config": {"load_alpha": self.LOAD_COST_ALPHA,
+                             "anomaly_beta": self.ANOMALY_COST_BETA,
+                             "recovery_seconds": self.SOURCE_RECOVERY_QUIET_SECONDS}}
         for source, quarantine in self.source_quarantines.items():
             record["source_recovery"][source] = {
                 "last_anomaly": quarantine["last_anomaly"],
@@ -694,6 +728,10 @@ print(json.dumps({
 
     def begin_quarantine(self, source):
         """Start a new recovery generation, preserving the accepted source EMA."""
+        # Quarantine ends any unfinished calibration. Recovery retains the
+        # accepted EMA and immediately resumes normal detection, never a new
+        # startup grace period that repeated attackers could exploit.
+        self.source_warmups.setdefault(source, {})["complete"] = True
         self.blocked_sources.add(source)
         self.source_quarantines[source] = {
             "last_anomaly": time.monotonic(), "samples": {}, "recovering": False}

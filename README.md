@@ -122,16 +122,11 @@ While a source is blocked, the priority-100 drop rules continue counting its IPv
 
 The recovery decision uses the same threshold as source detection, `max(1500 packets/s, 5 × the accepted source EMA)`. The busiest switch's source-drop rate represents continuing activity without counting the same in-flight packets several times. A renewed high-rate burst resets the 30-second countdown. Occasional normal ping attempts below the threshold leave the countdown running. Recovery measurements include all IPv4 packets matching the source block.
 
-Every topology switch must provide fresh counter samples. Missing statistics, a missing drop rule, a counter reset, or a switch reconnect delays recovery. A missing rule is reinstalled. Counter resets establish a new observation window. Late replies from an earlier quarantine generation are ignored.
-
-The controller removes downstream source-drop rules first, confirms them with OpenFlow barriers, and reads fresh ingress counters again. It removes the source's ingress block last. The source stays in the software blocked set until all removals are acknowledged. If activity resumes or an acknowledgement fails, the block is restored and recovery is deferred.
-
 The accepted EMA baseline and accounting samples are retained, so a recovered source remains subject to normal detection and a later flood can be blocked again. The 30-second link-cost anomaly penalty has its own timer and may expire before source recovery.
 
 | Constant | Default | Meaning |
 | --- | --- | --- |
 | `SOURCE_RECOVERY_QUIET_SECONDS` | `30.0` | Required interval without renewed anomalous-rate traffic |
-| `RECOVERY_STATS_MAX_AGE` | `3.0` | Maximum age of counter observations used for recovery |
 
 ### Manual recovery check
 
@@ -146,7 +141,6 @@ h2 ping -c 1 -W 1 h3
 The immediate ping should fail while h2 is quarantined. Keep the same controller running and allow the quiet interval plus polling overhead to complete.
 
 ```text
-sh sleep 40
 h2 ping -c 3 -W 1 h3
 h3 ping -c 3 -W 1 h2
 pingall
@@ -186,8 +180,8 @@ U_ij(t) = min(1, max(TX_rate_i_to_j, TX_rate_j_to_i) / capacity_ij)
 
 | Constant | Default | Meaning |
 | --- | --- | --- |
-| `LOAD_COST_ALPHA` | `30.0` | Cost added at full link utilization |
-| `ANOMALY_COST_BETA` | `50.0` | Additional cost while an edge is anomaly-affected |
+| `LOAD_COST_ALPHA` | `4.0` | Cost added at full link utilization |
+| `ANOMALY_COST_BETA` | `20.0` | Additional cost while an edge is anomaly-affected |
 | `ANOMALY_HOLD_SECONDS` | `30.0` | Temporary edge-penalty lifetime |
 
 ### Testing
@@ -218,98 +212,61 @@ Check terminal 1, the path should be rerouted to `s5->s3->s6` with cost 16 again
 
 ## Rerouting of Legitmate Traffic
 
-### Start the test
-
-With the previous network and controller stopped, run inside the VM.
-
-```bash
-cd ~/MininetLab
-python3 -m unittest -v test_dynamic_cost.py
-sudo env PYTHONDONTWRITEBYTECODE=1 python3 -u evaluate_task4.py
-sudo python3 plot_task4.py
+### Establish `h1->h6` data flow
+In terminal 2, run
+```text
+h6 iperf -s -u &
+h1 iperf -c h6 -u -b 10M -t 600 &
 ```
+`h1` will continuously send data to `h6` at 10Mbps for 600 seconds.
 
-Raw datagram logs, telemetry, captures, summaries, and flow snapshots are in results/task4/case_a, case_b, and case_c. The CSV files contain one-second measurements. Each run replaces these case outputs.
 
 ### Case A
+Start flooding `s2-s3` using trafic from `h2->h3`for 10 seconds.
 
-Attack on **s2-s3**, from **h2** to **h3**.
+```text
+h2 timeout --signal=INT 10s hping3 --icmp --flood h3
+```
 
-Original delay cost is **10.0**. The first measured affected-link cost is **10.000**. The initial h1–h6 path is **s1 → s2 → s6**, whose original delay sum is **19**.
+Paths: `[{'time': 0.004362646002846304, 'path': [1, 2, 6]}]`
 
-| Phase | Mean link cost | Mean normalized cost | Loss (%) | Received throughput (Mbps) |
-| --- | ---: | ---: | ---: | ---: |
-| Before | 10.000 | 1.000 | 0.000 | 0.3053 |
-| During | 56.160 | 5.616 | 0.000 | 0.3080 |
-| After | 33.684 | 3.368 | 0.000 | 0.3069 |
-| Recovered | 10.000 | 1.000 | 0.000 | 0.3068 |
+| Phase | Received Mbps | Packet loss % | Mean normalized affected-link cost |
+|---|---:|---:|---:|
+| Before | 10.486 | 0.000 | 1.000 |
+| During flood | 10.486 | 0.000 | 2.924 |
+| After flood | 10.486 | 0.000 | 2.194 |
+| Recovered | 10.486 | 0.000 | 1.000 |
 
-Blocking was observed **2.01 seconds** after flood start. The sampled peak link cost was **63.921**, or **6.392 times its original value**. Penalty expiry was approximately **45.35 seconds**.
+## Case B
+Start flooding `s2-s6` using trafic from `h2->h6`for 10 seconds.
 
-Recorded h1–h6 paths
+```text
+h2 timeout --signal=INT 10s hping3 --icmp --flood h6
+```
 
-- 0.0s — s1 → s2 → s6
+Paths: `[{'time': 0.0016059720001067035, 'path': [1, 2, 6]}, {'time': 17.000916963996133, 'path': [1, 2, 3, 6]}, {'time': 46.000799493995146, 'path': [1, 2, 6]}]`
 
-The affected link was outside h1–h6's s1–s2–s6 route. That route stayed preferable, so the controller correctly retained it.
+| Phase | Received Mbps | Packet loss % | Mean normalized affected-link cost |
+|---|---:|---:|---:|
+| Before | 10.482 | 0.030 | 1.077 |
+| During flood | 10.472 | 0.112 | 2.381 |
+| After flood | 10.487 | 0.000 | 1.847 |
+| Recovered | 10.486 | 0.000 | 1.077 |
 
-All six switches installed the source block. A three-second destination capture observed zero post-block attack packets while the flood remained active. The ingress drop counter increased from **245538 to 514164**. All 20 legitimate post-attack ping checks passed, and ordinary pings from the blocked source failed after the flood stopped.
+## Case C
+Start flooding `s5-s6` using trafic from `h5->h6`for 10 seconds.
 
-![Case A plots](results/task4/case_a_plots.png)
+```text
+h5 timeout --signal=INT 10s hping3 --icmp --flood h6
+```
 
-### Case B
+Paths: `[{'time': 0.00188659799459856, 'path': [1, 2, 6]}]`
 
-Attack on **s2-s6**, from **h2** to **h6**.
+| Phase | Received Mbps | Packet loss % | Mean normalized affected-link cost |
+|---|---:|---:|---:|
+| Before | 10.486 | 0.000 | 1.000 |
+| During flood | 10.478 | 0.009 | 1.961 |
+| After flood | 10.301 | 0.071 | 1.581 |
+| Recovered | 10.486 | 0.000 | 1.000 |
 
-Original delay cost is **14.0**. The first measured affected-link cost is **14.001**. The initial h1–h6 path is **s1 → s2 → s6**, whose original delay sum is **19**.
-
-| Phase | Mean link cost | Mean normalized cost | Loss (%) | Received throughput (Mbps) |
-| --- | ---: | ---: | ---: | ---: |
-| Before | 14.213 | 1.015 | 0.000 | 0.3059 |
-| During | 56.499 | 4.036 | 0.000 | 0.3064 |
-| After | 39.107 | 2.793 | 0.000 | 0.3072 |
-| Recovered | 14.238 | 1.017 | 0.000 | 0.3076 |
-
-Blocking was observed **2.01 seconds** after flood start. The sampled peak link cost was **72.674**, or **5.191 times its original value**. Penalty expiry was approximately **45.62 seconds**.
-
-Recorded h1–h6 paths
-
-- 0.0s — s1 → s2 → s6
-- 18.0s — s1 → s2 → s3 → s6
-- 47.0s — s1 → s2 → s6
-
-The affected s2–s6 link was on the initial route. The active flow moved through s2–s3–s6 as the penalty made that alternative cheaper, then returned to the direct s2–s6 segment after recovery.
-
-All six switches installed the source block. A three-second destination capture observed zero post-block attack packets while the flood remained active. The ingress drop counter increased from **200760 to 460013**. All 20 legitimate post-attack ping checks passed, and ordinary pings from the blocked source failed after the flood stopped.
-
-![Case B plots](results/task4/case_b_plots.png)
-
-### Case C
-
-Attack on **s5-s6**, from **10.0.0.5** to **10.0.0.6**.
-
-Original delay cost is **20.0**. The first measured affected-link cost is **20.001**. The initial h1–h6 path is **s1 → s2 → s6**, whose original delay sum is **19**.
-
-| Phase | Mean link cost | Mean normalized cost | Loss (%) | Received throughput (Mbps) |
-| --- | ---: | ---: | ---: | ---: |
-| Before | 20.000 | 1.000 | 0.000 | 0.3059 |
-| During | 62.434 | 3.122 | 0.000 | 0.3072 |
-| After | 45.000 | 2.250 | 0.000 | 0.3069 |
-| Recovered | 20.000 | 1.000 | 0.000 | 0.3074 |
-
-Blocking was observed **2.01 seconds** after flood start. The sampled peak link cost was **78.924**, or **3.946 times its original value**. Penalty expiry was approximately **45.92 seconds**.
-
-Recorded h1–h6 paths
-
-- 0.0s — s1 → s2 → s6
-
-The affected link was outside h1–h6's s1–s2–s6 route. That route stayed preferable, so the controller correctly retained it.
-
-All six switches installed the source block. A three-second destination capture observed zero post-block attack packets while the flood remained active. The ingress drop counter increased from **218983 to 487189**. All 20 legitimate post-attack ping checks passed, and ordinary pings from the blocked source failed after the flood stopped.
-
-![Case C plots](results/task4/case_c_plots.png)
-
-### Interpretation and limits
-
-The firewall stops sustained attack forwarding shortly after detection. High link load is consequently a short burst even while the generator continues until 27 seconds. Costs remain elevated during the anomaly hold, then return toward the original values. A link carrying the continuing legitimate stream retains a small load surcharge.
-
-Loss and throughput are measured at the receiver. Per-second throughput fluctuations can reflect packet timing and VM scheduling. Shared destination links and CPU load can affect delivery even when the targeted switch link is outside h1–h6's path. These trials establish continuity at the stated offered load. Maximum TCP capacity was not measured. One trial per case provides no statistical confidence interval.
+![Plot](results/task4_iperf/task4_iperf.png)

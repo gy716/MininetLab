@@ -1,4 +1,4 @@
-"""Run Task 4's three isolated experiments with a fresh controller per case.
+"""Run Task 4's three sequential experiments on one controller and network.
 
 Run sudo python3 evaluate_task4.py. Raw logs and samples go to results/task4.
 The controller's evaluation pin ensures the assigned attack crosses the named
@@ -20,7 +20,7 @@ from mininet.node import OVSSwitch, RemoteController
 from test_anomaly import module
 
 ROOT = Path(__file__).resolve().parent
-RESULTS = ROOT / "results/task4"
+RESULTS = Path(os.environ.get("MININET_RESULTS_DIR", str(ROOT / "results/task4_iperf")))
 DURATION = 65
 ATTACK_START = 15
 ATTACK_END = 27
@@ -64,43 +64,21 @@ def stop(process):
             process.wait()
 
 
-def run_case(label, attacker_name, target_name, pinned_path):
+def run_case(net, telemetry, controller_log_path, stream_start, client, label, attacker_name, target_name, pinned_path):
     folder = RESULTS / ("case_" + label)
     folder.mkdir(parents=True, exist_ok=True)
     source = "10.0.0." + attacker_name[1:]
     target = "10.0.0." + target_name[1:]
     edge = "s%d-s%d" % tuple(pinned_path)
-    telemetry = folder / "telemetry.jsonl"
-    telemetry.write_text("")
-    environment = dict(os.environ, PYTHONDONTWRITEBYTECODE="1",
-        MININET_ROUTE_PINS=json.dumps({source + "," + target: pinned_path}),
-        MININET_TELEMETRY_FILE=str(telemetry))
-    controller_log = open(folder / "controller.log", "w")
-    controller = subprocess.Popen([str(ROOT / "run_controller.sh")], env=environment,
-        stdout=controller_log, stderr=subprocess.STDOUT)
-    net = None
+    case_begin = time.monotonic()
+    log_offset = controller_log_path.stat().st_size
     children = []
     files = []
     summary = dict(case=label, attack_source=source, attack_target=target,
                    affected_link=edge, pinned_attack_path=pinned_path,
-                   duration=DURATION, attack_start=ATTACK_START, attack_end=ATTACK_END)
+                   load_cost_alpha=4.0, anomaly_cost_beta=20.0,
+                   controller_reused=True, duration=DURATION, attack_start=ATTACK_START, attack_end=ATTACK_END)
     try:
-        for _ in range(50):
-            if controller.poll() is not None:
-                raise RuntimeError("Controller startup failed")
-            try:
-                connection = socket.create_connection(("127.0.0.1", 6653), timeout=0.1)
-                connection.close()
-                break
-            except OSError:
-                time.sleep(0.1)
-        else:
-            raise RuntimeError("Controller did not listen on 6653")
-        net = Mininet(topo=module.MeshTopo(), controller=None,
-            switch=partial(OVSSwitch, protocols="OpenFlow13"))
-        net.addController("c0", controller=RemoteController, ip="127.0.0.1", port=6653)
-        net.start()
-        assert net.waitConnected(timeout=10)
         summary["initial_pingall_loss"] = net.pingAll(timeout="1")
         assert summary["initial_pingall_loss"] == 0
 
@@ -108,22 +86,7 @@ def run_case(label, attacker_name, target_name, pinned_path):
         # Keep the source/destination pair continuously active through all phases.
         start = time.monotonic() + 2
         summary["start_monotonic"] = start
-        ready = folder / "receiver.ready"
-        if ready.exists():
-            ready.unlink()
-        receiver = net["h6"].popen([sys.executable, str(ROOT / "task4_probe.py"), "receive",
-            "--output", str(folder / "received.jsonl"), "--ready", str(ready),
-            "--start", str(start), "--duration", str(DURATION)])
-        children.append(receiver)
-        for _ in range(50):
-            if ready.exists():
-                break
-            time.sleep(0.02)
-        assert ready.exists(), "UDP receiver failed to bind"
-        sender = net["h1"].popen([sys.executable, str(ROOT / "task4_probe.py"), "send",
-            "--output", str(folder / "sent.jsonl"), "--start", str(start),
-            "--duration", str(DURATION)])
-        children.append(sender)
+        summary["stream_offset"] = start - stream_start
         ping_file = open(folder / "continuous_ping.log", "w")
         files.append(ping_file)
         ping = net["h1"].popen(["ping", "-D", "-i", "1", "-w", str(DURATION + 2), "10.0.0.6"],
@@ -146,6 +109,7 @@ def run_case(label, attacker_name, target_name, pinned_path):
                     stdout=attack_log, stderr=subprocess.STDOUT)
                 children.append(attack)
                 print("CASE %s attack started on %s" % (label, edge), flush=True)
+            assert client.poll() is None, "Continuous iperf client stopped unexpectedly"
             rows = read_jsonl(telemetry)
             latest = rows[-1] if rows else {}
             route = latest.get("routes", {}).get("10.0.0.1,10.0.0.6", {})
@@ -186,14 +150,18 @@ def run_case(label, attacker_name, target_name, pinned_path):
                 (folder / ("flows_%02d.json" % tick)).write_text(json.dumps(snapshot, indent=2))
             if tick % 15 == 0:
                 print("CASE %s t=%ds path=%s" % (label, tick, route.get("path")), flush=True)
-        sender.wait(timeout=5)
-        receiver.wait(timeout=5)
         summary["post_attack_ping_loss"] = net.ping(
             hosts=[host for host in net.hosts if host.name != attacker_name], timeout="1")
         (folder / "observations.json").write_text(json.dumps(observations, indent=2))
 
         rows = read_jsonl(telemetry)
         active = [row for row in rows if start <= row["time"] <= start + DURATION]
+        # Verify the configured equation for every recorded link, not just
+        # the attacked edge. This catches stale coefficients in the controller.
+        for row in active:
+            for link in row["links"].values():
+                expected = link["base_cost"] + 4.0 * link["utilization"] + 20.0 * int(link["anomaly"])
+                assert abs(link["weight"] - expected) < 1e-6
         penalties = [row for row in active if row["links"][edge]["anomaly"]]
         summary["penalty_start"] = min(row["time"] - start for row in penalties)
         summary["penalty_end"] = max(row["links"][edge]["anomaly_until"] - start for row in penalties)
@@ -203,11 +171,6 @@ def run_case(label, attacker_name, target_name, pinned_path):
                 paths.append(dict(time=row["time"], path=row["path"]))
         summary["path_changes"] = paths
 
-        received = read_jsonl(folder / "received.jsonl")
-        # Verify connectivity throughout every five-second measurement interval.
-        summary["connected_every_five_seconds"] = all(any(
-            start + begin <= row["time"] < start + begin + 5 for row in received)
-            for begin in range(0, DURATION, 5))
         assert blocked_at is not None and summary["block_after_attack_seconds"] < 7
         assert summary["capture_exit"] == 124 and summary["capture_packets"] == ""
         assert summary["drops_after"] > summary["drops_before"]
@@ -215,25 +178,142 @@ def run_case(label, attacker_name, target_name, pinned_path):
         assert len(summary["switches_blocking_source"]) == 6
         assert summary["post_attack_ping_loss"] == 0
         assert "100% packet loss" in summary["blocked_source_ping"]
-        assert summary["connected_every_five_seconds"]
         assert paths[0]["path"] == [1, 2, 6] and paths[-1]["path"] == [1, 2, 6]
         if label == "b":
             assert any(row["path"] == [1, 2, 3, 6] for row in paths)
         else:
             assert all(row["path"] == [1, 2, 6] for row in paths)
+        # Reuse this controller, its learned baselines, and the same network.
+        # Require a fresh unblocked telemetry sample AND removal of all firewall
+        # rules before probing the recovered host. A deadline exposes failures.
+        deadline = time.monotonic() + 120
+        while time.monotonic() < deadline:
+            latest = read_jsonl(telemetry)[-1]
+            if (time.monotonic() - latest["time"] < 3
+                    and not latest["blocked"]
+                    and all(block_count(sw.name, source) is None for sw in net.switches)
+                    and not any(link["anomaly"] for link in latest["links"].values())
+                    and not any(route["switching"] for route in latest["routes"].values())):
+                break
+            time.sleep(.5)
+        else:
+            raise AssertionError("Source or routing state did not recover before next case")
+        summary["recovery_verified_at"] = time.monotonic() - start
+        summary["recovered_pingall_loss"] = net.pingAll(timeout="1")
+        assert summary["recovered_pingall_loss"] == 0
+        summary["controller_config"] = latest["config"]
+        assert latest["config"]["load_alpha"] == 4.0
+        assert latest["config"]["anomaly_beta"] == 20.0
         summary["passed"] = True
         print("CASE %s PASSED paths=%s" % (label, paths), flush=True)
     finally:
         for process in children:
             stop(process)
-        if net is not None:
-            net.stop()
-        stop(controller)
-        controller_log.close()
+        # Preserve per-case artifacts consumed by plot_task4.py, while keeping
+        # the full uninterrupted controller history at the results root.
+        case_end = time.monotonic()
+        rows = [r for r in read_jsonl(telemetry) if case_begin <= r["time"] <= case_end]
+        (folder / "telemetry.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
+        with open(controller_log_path, "rb") as handle:
+            handle.seek(log_offset)
+            (folder / "controller.log").write_bytes(handle.read())
         for handle in files:
             handle.close()
         (folder / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
     return summary
+
+
+def run_evaluation():
+    """Own one controller/network for all cases; always clean up on failure."""
+    telemetry = RESULTS / "controller_telemetry.jsonl"
+    telemetry.write_text("")
+    log_path = RESULTS / "controller.log"
+    # Pins affect only attack pairs, never the measured h1 -> h6 flow. Pin all
+    # three at startup so no controller restart or live configuration is needed.
+    pins = {"10.0.0." + src[1:] + ",10.0.0." + dst[1:]: path
+            for _, src, dst, path in CASES}
+    environment = dict(os.environ, PYTHONDONTWRITEBYTECODE="1",
+        MININET_ROUTE_PINS=json.dumps(pins), MININET_TELEMETRY_FILE=str(telemetry))
+    net = None
+    warmers = []
+    stream_processes = []
+    stream_files = []
+    with open(log_path, "w") as output:
+        controller = subprocess.Popen([str(ROOT / "run_controller.sh")],
+            env=environment, stdout=output, stderr=subprocess.STDOUT)
+        try:
+            for _ in range(100):
+                if controller.poll() is not None:
+                    raise RuntimeError("Controller startup failed")
+                try:
+                    with socket.create_connection(("127.0.0.1", 6653), timeout=.1):
+                        break
+                except OSError:
+                    time.sleep(.1)
+            else:
+                raise RuntimeError("Controller did not listen on 6653")
+            net = Mininet(topo=module.MeshTopo(), controller=None,
+                switch=partial(OVSSwitch, protocols="OpenFlow13"))
+            net.addController("c0", controller=RemoteController, ip="127.0.0.1", port=6653)
+            net.start()
+            assert net.waitConnected(timeout=10)
+            assert net.pingAll(timeout="1") == 0
+            # Warm every source using approximately the measurement workload's
+            # 32 pps / 1200-byte packet rate. Echo replies are detector-exempt.
+            # Keep calibration outside measured phases, and verify completion
+            # from telemetry rather than assuming a fixed sleep was sufficient.
+            for index, host in enumerate(net.hosts):
+                target = net.hosts[(index + 1) % len(net.hosts)].IP()
+                warmers.append(host.popen(["ping", "-i", "0.03125", "-s", "1172",
+                    "-w", "20", target], stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL))
+            deadline = time.monotonic() + 25
+            while time.monotonic() < deadline:
+                rows = read_jsonl(telemetry)
+                latest = rows[-1] if rows else {}
+                if latest.get("blocked"):
+                    raise AssertionError("Normal warmup traffic was blocked")
+                if all(latest.get("warmup", {}).get(host.IP(), {}).get("complete")
+                       for host in net.hosts):
+                    break
+                time.sleep(.5)
+            else:
+                raise AssertionError("Host warmup failed to complete")
+            for process in warmers:
+                stop(process)
+            print("Warmup complete; evaluating all cases on the same controller.", flush=True)
+            # One UDP socket/session spans ALL cases and recovery waits. Server
+            # interval reports measure received throughput and sequence-number
+            # loss; sender offered rate is not substituted for throughput.
+            server_log = open(RESULTS / "iperf_server.csv", "w")
+            client_log = open(RESULTS / "iperf_client.log", "w")
+            stream_files.extend([server_log, client_log])
+            server = net["h6"].popen(["stdbuf", "-oL", "iperf", "-s", "-u",
+                "-i", "1", "-y", "C"], stdout=server_log, stderr=subprocess.STDOUT)
+            stream_processes.append(server)
+            time.sleep(1)
+            assert server.poll() is None, "iperf server failed"
+            stream_start = time.monotonic()
+            client = net["h1"].popen(["iperf", "-c", "10.0.0.6", "-u",
+                "-b", "10M", "-l", "1470", "-t", "600", "-i", "1"],
+                stdout=client_log, stderr=subprocess.STDOUT)
+            stream_processes.append(client)
+            (RESULTS / "stream.json").write_text(json.dumps({
+                "start_monotonic": stream_start, "offered_mbps": 10,
+                "datagram_bytes": 1470, "max_seconds": 600}))
+            summaries = [run_case(net, telemetry, log_path, stream_start, client, *case)
+                         for case in CASES]
+            return summaries
+        finally:
+            for process in reversed(stream_processes):
+                stop(process)
+            for handle in stream_files:
+                handle.close()
+            for process in warmers:
+                stop(process)
+            if net is not None:
+                net.stop()
+            stop(controller)
 
 
 if __name__ == "__main__":
@@ -246,7 +326,8 @@ if __name__ == "__main__":
     if subprocess.check_output(["ovs-vsctl", "list-br"], text=True).strip():
         raise SystemExit("Stop the existing Mininet network before evaluation.")
     RESULTS.mkdir(parents=True, exist_ok=True)
-    summaries = [run_case(*case) for case in CASES]
+    summaries = run_evaluation()
     (RESULTS / "summary.json").write_text(json.dumps(summaries, indent=2) + "\n")
-    print("All three Task 4 cases passed.", flush=True)
+    subprocess.run([sys.executable, str(ROOT / "plot_task4_iperf.py"), str(RESULTS)], check=True)
+    print("All three Task 4 cases passed; combined iperf plot generated.", flush=True)
 

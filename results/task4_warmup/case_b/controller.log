@@ -1,0 +1,214 @@
+BASELINE source=10.0.0.1 rate=5.96 pps ema=9.43 threshold=1500.00
+BASELINE source=10.0.0.1 rate=3.91 pps ema=8.32 threshold=1500.00
+BASELINE source=10.0.0.2 rate=3.92 pps ema=11.53 threshold=1500.00
+BASELINE source=10.0.0.2 rate=5.94 pps ema=10.42 threshold=1500.00
+BASELINE source=10.0.0.3 rate=1.98 pps ema=10.08 threshold=1500.00
+BASELINE source=10.0.0.3 rate=5.94 pps ema=9.25 threshold=1500.00
+BASELINE source=10.0.0.4 rate=3.96 pps ema=8.09 threshold=1500.00
+BASELINE source=10.0.0.3 rate=1.98 pps ema=7.80 threshold=1500.00
+BASELINE source=10.0.0.4 rate=3.56 pps ema=7.19 threshold=1500.00
+BASELINE source=10.0.0.4 rate=1.95 pps ema=6.14 threshold=1500.00
+BASELINE source=10.0.0.5 rate=1.95 pps ema=6.15 threshold=1500.00
+BASELINE source=10.0.0.5 rate=5.65 pps ema=6.05 threshold=1500.00
+BASELINE source=10.0.0.6 rate=1.76 pps ema=8.55 threshold=1500.00
+BASELINE source=10.0.0.5 rate=1.76 pps ema=5.19 threshold=1500.00
+BASELINE source=10.0.0.6 rate=5.66 pps ema=7.97 threshold=1500.00
+BASELINE source=10.0.0.1 rate=1.99 pps ema=7.06 threshold=1500.00
+BASELINE source=10.0.0.6 rate=1.99 pps ema=6.77 threshold=1500.00
+BASELINE source=10.0.0.1 rate=1.58 pps ema=5.96 threshold=1500.00
+BASELINE source=10.0.0.1 rate=19.80 pps ema=8.73 threshold=1500.00
+BASELINE source=10.0.0.1 rate=33.33 pps ema=13.65 threshold=1500.00
+BASELINE source=10.0.0.1 rate=35.79 pps ema=18.08 threshold=1500.00
+BASELINE source=10.0.0.1 rate=25.21 pps ema=19.50 threshold=1500.00
+BASELINE source=10.0.0.1 rate=37.88 pps ema=23.18 threshold=1500.00
+BASELINE source=10.0.0.1 rate=33.33 pps ema=25.21 threshold=1500.00
+BASELINE source=10.0.0.1 rate=29.01 pps ema=25.97 threshold=1500.00
+BASELINE source=10.0.0.1 rate=36.97 pps ema=28.17 threshold=1500.00
+BASELINE source=10.0.0.1 rate=34.22 pps ema=29.38 threshold=1500.00
+BASELINE source=10.0.0.1 rate=59.93 pps ema=35.49 threshold=1500.00
+BASELINE source=10.0.0.1 rate=37.11 pps ema=35.81 threshold=1500.00
+BASELINE source=10.0.0.1 rate=29.61 pps ema=34.57 threshold=1500.00
+BASELINE source=10.0.0.1 rate=36.05 pps ema=34.87 threshold=1500.00
+BASELINE source=10.0.0.1 rate=33.53 pps ema=34.60 threshold=1500.00
+BASELINE source=10.0.0.1 rate=65.76 pps ema=40.83 threshold=1500.00
+BASELINE source=10.0.0.1 rate=33.66 pps ema=39.40 threshold=1500.00
+BASELINE source=10.0.0.1 rate=29.59 pps ema=37.44 threshold=1500.00
+BASELINE source=10.0.0.1 rate=37.25 pps ema=37.40 threshold=1500.00
+BASELINE source=10.0.0.1 rate=23.34 pps ema=34.59 threshold=1500.00
+BASELINE source=10.0.0.1 rate=39.76 pps ema=35.62 threshold=1500.00
+BASELINE source=10.0.0.1 rate=33.01 pps ema=35.10 threshold=1500.00
+BASELINE source=10.0.0.1 rate=37.85 pps ema=35.65 threshold=1500.00
+BASELINE source=10.0.0.1 rate=28.46 pps ema=34.21 threshold=1500.00
+BASELINE source=10.0.0.1 rate=29.47 pps ema=33.26 threshold=1500.00
+BASELINE source=10.0.0.1 rate=36.65 pps ema=33.94 threshold=1500.00
+BASELINE source=10.0.0.1 rate=35.64 pps ema=34.28 threshold=1500.00
+BASELINE source=10.0.0.1 rate=29.82 pps ema=33.39 threshold=1500.00
+ROUTE source=10.0.0.2 destination=10.0.0.6 path=[2, 6] cost=14.032
+ROUTE source=10.0.0.6 destination=10.0.0.2 path=[6, 2] cost=14.032
+ANOMALY source=10.0.0.2 rate=6689.11 pps baseline=10.42 threshold=1500.00
+LINK_COST s2-s6 base=14.000 rate=316685 bps utilization=0.0079 anomaly=1 cost=34.032
+ANOMALY_LINKS source=10.0.0.2 edges=[(2, 6)] hold_seconds=30.0
+FIREWALL source=10.0.0.2 switch=s1 action=drop
+FIREWALL source=10.0.0.2 switch=s2 action=drop
+FIREWALL source=10.0.0.2 switch=s3 action=drop
+FIREWALL source=10.0.0.2 switch=s4 action=drop
+FIREWALL source=10.0.0.2 switch=s5 action=drop
+FIREWALL source=10.0.0.2 switch=s6 action=drop
+LINK_COST s2-s6 base=14.000 rate=16441695 bps utilization=0.4110 anomaly=1 cost=35.644
+BASELINE source=10.0.0.1 rate=11.88 pps ema=29.09 threshold=1500.00
+LINK_COST s2-s6 base=14.000 rate=14020222 bps utilization=0.3505 anomaly=1 cost=35.402
+BASELINE source=10.0.0.1 rate=56.31 pps ema=34.53 threshold=1500.00
+LINK_COST s2-s6 base=14.000 rate=2290909 bps utilization=0.0573 anomaly=1 cost=34.229
+REROUTE time=61059.817073 source=10.0.0.6 destination=10.0.0.1 old=[6, 2, 1] new=[6, 3, 2, 1] old_cost=40.676 new_cost=22.032
+REROUTE time=61059.817182 source=10.0.0.1 destination=10.0.0.6 old=[1, 2, 6] new=[1, 2, 3, 6] old_cost=40.676 new_cost=22.032
+LINK_COST s2-s6 base=14.000 rate=19832 bps utilization=0.0005 anomaly=1 cost=34.002
+BASELINE source=10.0.0.1 rate=33.86 pps ema=34.40 threshold=1500.00
+BASELINE source=10.0.0.1 rate=31.87 pps ema=33.89 threshold=1500.00
+BASELINE source=10.0.0.1 rate=33.93 pps ema=33.90 threshold=1500.00
+BASELINE source=10.0.0.1 rate=64.58 pps ema=40.04 threshold=1500.00
+BASELINE source=10.0.0.1 rate=31.31 pps ema=38.29 threshold=1500.00
+BASELINE source=10.0.0.1 rate=35.57 pps ema=37.75 threshold=1500.00
+BASELINE source=10.0.0.1 rate=31.81 pps ema=36.56 threshold=1500.00
+BASELINE source=10.0.0.1 rate=33.27 pps ema=35.90 threshold=1500.00
+BASELINE source=10.0.0.1 rate=33.80 pps ema=35.48 threshold=1500.00
+BASELINE source=10.0.0.1 rate=31.94 pps ema=34.77 threshold=1500.00
+BASELINE source=10.0.0.1 rate=33.86 pps ema=34.59 threshold=1500.00
+BASELINE source=10.0.0.1 rate=31.13 pps ema=33.90 threshold=1500.00
+BASELINE source=10.0.0.1 rate=33.93 pps ema=33.90 threshold=1500.00
+BASELINE source=10.0.0.1 rate=33.60 pps ema=33.84 threshold=1500.00
+BASELINE source=10.0.0.1 rate=31.75 pps ema=33.42 threshold=1500.00
+BASELINE source=10.0.0.1 rate=33.80 pps ema=33.50 threshold=1500.00
+BASELINE source=10.0.0.1 rate=33.86 pps ema=33.57 threshold=1500.00
+BASELINE source=10.0.0.1 rate=33.93 pps ema=33.64 threshold=1500.00
+BASELINE source=10.0.0.1 rate=31.87 pps ema=33.29 threshold=1500.00
+BASELINE source=10.0.0.1 rate=32.57 pps ema=33.15 threshold=1500.00
+BASELINE source=10.0.0.1 rate=31.43 pps ema=32.80 threshold=1500.00
+BASELINE source=10.0.0.1 rate=35.23 pps ema=33.29 threshold=1500.00
+BASELINE source=10.0.0.1 rate=31.68 pps ema=32.97 threshold=1500.00
+BASELINE source=10.0.0.1 rate=33.73 pps ema=33.12 threshold=1500.00
+BASELINE source=10.0.0.1 rate=33.07 pps ema=33.11 threshold=1500.00
+BASELINE source=10.0.0.1 rate=31.62 pps ema=32.81 threshold=1500.00
+BASELINE source=10.0.0.1 rate=33.73 pps ema=33.00 threshold=1500.00
+BASELINE source=10.0.0.1 rate=27.83 pps ema=31.96 threshold=1500.00
+BASELINE source=10.0.0.1 rate=37.62 pps ema=33.10 threshold=1500.00
+BASELINE source=10.0.0.1 rate=33.86 pps ema=33.25 threshold=1500.00
+BASELINE source=10.0.0.1 rate=33.60 pps ema=33.32 threshold=1500.00
+BASELINE source=10.0.0.1 rate=33.73 pps ema=33.40 threshold=1500.00
+BASELINE source=10.0.0.1 rate=27.89 pps ema=32.30 threshold=1500.00
+BASELINE source=10.0.0.1 rate=35.36 pps ema=32.91 threshold=1500.00
+BASELINE source=10.0.0.1 rate=31.25 pps ema=32.58 threshold=1500.00
+BASELINE source=10.0.0.1 rate=36.19 pps ema=33.30 threshold=1500.00
+BASELINE source=10.0.0.1 rate=31.54 pps ema=32.95 threshold=1500.00
+BASELINE source=10.0.0.1 rate=33.71 pps ema=33.10 threshold=1500.00
+BASELINE source=10.0.0.1 rate=29.70 pps ema=32.42 threshold=1500.00
+BASELINE source=10.0.0.1 rate=35.86 pps ema=33.11 threshold=1500.00
+BASELINE source=10.0.0.1 rate=32.57 pps ema=33.00 threshold=1500.00
+BASELINE source=10.0.0.1 rate=31.81 pps ema=32.76 threshold=1500.00
+BASELINE source=10.0.0.1 rate=34.55 pps ema=33.12 threshold=1500.00
+BASELINE source=10.0.0.1 rate=33.80 pps ema=33.25 threshold=1500.00
+BASELINE source=10.0.0.1 rate=30.02 pps ema=32.61 threshold=1500.00
+BASELINE source=10.0.0.1 rate=33.90 pps ema=32.87 threshold=1500.00
+BASELINE source=10.0.0.1 rate=33.53 pps ema=33.00 threshold=1500.00
+BASELINE source=10.0.0.1 rate=33.86 pps ema=33.17 threshold=1500.00
+BASELINE source=10.0.0.1 rate=33.14 pps ema=33.17 threshold=1500.00
+BASELINE source=10.0.0.1 rate=31.62 pps ema=32.86 threshold=1500.00
+BASELINE source=10.0.0.1 rate=33.20 pps ema=32.93 threshold=1500.00
+BASELINE source=10.0.0.1 rate=33.86 pps ema=33.11 threshold=1500.00
+BASELINE source=10.0.0.1 rate=30.19 pps ema=32.53 threshold=1500.00
+BASELINE source=10.0.0.1 rate=35.85 pps ema=33.19 threshold=1500.00
+BASELINE source=10.0.0.1 rate=33.20 pps ema=33.19 threshold=1500.00
+BASELINE source=10.0.0.1 rate=33.73 pps ema=33.30 threshold=1500.00
+LINK_COST s2-s6 base=14.000 rate=0 bps utilization=0.0000 anomaly=0 cost=14.000
+BASELINE source=10.0.0.1 rate=33.33 pps ema=33.31 threshold=1500.00
+REROUTE time=61089.370648 source=10.0.0.6 destination=10.0.0.1 old=[6, 3, 2, 1] new=[6, 2, 1] old_cost=22.107 new_cost=19.034
+REROUTE time=61089.371288 source=10.0.0.1 destination=10.0.0.6 old=[1, 2, 3, 6] new=[1, 2, 6] old_cost=22.107 new_cost=19.034
+BASELINE source=10.0.0.1 rate=33.27 pps ema=33.30 threshold=1500.00
+BASELINE source=10.0.0.1 rate=61.80 pps ema=39.00 threshold=1500.00
+BASELINE source=10.0.0.1 rate=33.60 pps ema=37.92 threshold=1500.00
+BASELINE source=10.0.0.1 rate=32.57 pps ema=36.85 threshold=1500.00
+BASELINE source=10.0.0.1 rate=33.33 pps ema=36.15 threshold=1500.00
+BASELINE source=10.0.0.1 rate=31.68 pps ema=35.25 threshold=1500.00
+BASELINE source=10.0.0.1 rate=35.86 pps ema=35.37 threshold=1500.00
+BASELINE source=10.0.0.1 rate=33.40 pps ema=34.98 threshold=1500.00
+BASELINE source=10.0.0.1 rate=31.37 pps ema=34.26 threshold=1500.00
+BASELINE source=10.0.0.1 rate=33.60 pps ema=34.13 threshold=1500.00
+BASELINE source=10.0.0.1 rate=30.95 pps ema=33.49 threshold=1500.00
+BASELINE source=10.0.0.1 rate=29.88 pps ema=32.77 threshold=1500.00
+BASELINE source=10.0.0.1 rate=36.96 pps ema=33.61 threshold=1500.00
+BASELINE source=10.0.0.1 rate=33.73 pps ema=33.63 threshold=1500.00
+BASELINE source=10.0.0.1 rate=29.47 pps ema=32.80 threshold=1500.00
+BASELINE source=10.0.0.1 rate=36.89 pps ema=33.62 threshold=1500.00
+BASELINE source=10.0.0.1 rate=33.07 pps ema=33.51 threshold=1500.00
+BASELINE source=10.0.0.1 rate=32.20 pps ema=33.25 threshold=1500.00
+BASELINE source=10.0.0.1 rate=31.75 pps ema=32.95 threshold=1500.00
+BASELINE source=10.0.0.1 rate=33.20 pps ema=33.00 threshold=1500.00
+BASELINE source=10.0.0.1 rate=31.94 pps ema=32.79 threshold=1500.00
+BASELINE source=10.0.0.1 rate=33.33 pps ema=32.90 threshold=1500.00
+BASELINE source=10.0.0.1 rate=33.80 pps ema=33.08 threshold=1500.00
+SOURCE_RECOVERED source=10.0.0.2 quiet_seconds=30.204
+BASELINE source=10.0.0.1 rate=33.52 pps ema=33.16 threshold=1500.00
+BASELINE source=10.0.0.1 rate=27.56 pps ema=32.04 threshold=1500.00
+BASELINE source=10.0.0.1 rate=37.11 pps ema=33.06 threshold=1500.00
+BASELINE source=10.0.0.1 rate=33.14 pps ema=33.07 threshold=1500.00
+BASELINE source=10.0.0.1 rate=32.88 pps ema=33.03 threshold=1500.00
+BASELINE source=10.0.0.1 rate=34.95 pps ema=33.42 threshold=1500.00
+BASELINE source=10.0.0.1 rate=29.93 pps ema=32.72 threshold=1500.00
+BASELINE source=10.0.0.1 rate=34.82 pps ema=33.14 threshold=1500.00
+BASELINE source=10.0.0.1 rate=32.14 pps ema=32.94 threshold=1500.00
+BASELINE source=10.0.0.1 rate=31.60 pps ema=32.67 threshold=1500.00
+BASELINE source=10.0.0.1 rate=35.50 pps ema=33.24 threshold=1500.00
+BASELINE source=10.0.0.1 rate=32.63 pps ema=33.12 threshold=1500.00
+BASELINE source=10.0.0.1 rate=32.63 pps ema=33.02 threshold=1500.00
+BASELINE source=10.0.0.1 rate=25.05 pps ema=31.42 threshold=1500.00
+ROUTE source=10.0.0.1 destination=10.0.0.3 path=[1, 2, 3] cost=15.000
+ROUTE source=10.0.0.3 destination=10.0.0.1 path=[3, 2, 1] cost=15.000
+ROUTE source=10.0.0.1 destination=10.0.0.4 path=[1, 4] cost=8.000
+ROUTE source=10.0.0.4 destination=10.0.0.1 path=[4, 1] cost=8.000
+ROUTE source=10.0.0.1 destination=10.0.0.5 path=[1, 2, 5] cost=17.000
+ROUTE source=10.0.0.5 destination=10.0.0.1 path=[5, 2, 1] cost=17.000
+BASELINE source=10.0.0.1 rate=5.88 pps ema=26.32 threshold=1500.00
+ROUTE source=10.0.0.3 destination=10.0.0.4 path=[3, 2, 4] cost=16.000
+ROUTE source=10.0.0.4 destination=10.0.0.3 path=[4, 2, 3] cost=16.000
+BASELINE source=10.0.0.3 rate=3.98 pps ema=7.03 threshold=1500.00
+BASELINE source=10.0.0.1 rate=1.99 pps ema=21.45 threshold=1500.00
+ROUTE source=10.0.0.3 destination=10.0.0.5 path=[3, 5] cost=9.000
+ROUTE source=10.0.0.5 destination=10.0.0.3 path=[5, 3] cost=9.000
+ROUTE source=10.0.0.3 destination=10.0.0.6 path=[3, 6] cost=7.000
+ROUTE source=10.0.0.6 destination=10.0.0.3 path=[6, 3] cost=7.000
+BASELINE source=10.0.0.3 rate=3.97 pps ema=6.42 threshold=1500.00
+BASELINE source=10.0.0.4 rate=1.98 pps ema=5.31 threshold=1500.00
+ROUTE source=10.0.0.4 destination=10.0.0.5 path=[4, 5] cost=15.000
+ROUTE source=10.0.0.5 destination=10.0.0.4 path=[5, 4] cost=15.000
+ROUTE source=10.0.0.4 destination=10.0.0.6 path=[4, 2, 6] cost=20.000
+ROUTE source=10.0.0.6 destination=10.0.0.4 path=[6, 2, 4] cost=20.000
+BASELINE source=10.0.0.4 rate=5.83 pps ema=5.41 threshold=1500.00
+BASELINE source=10.0.0.5 rate=5.96 pps ema=5.35 threshold=1500.00
+ROUTE source=10.0.0.5 destination=10.0.0.6 path=[5, 6] cost=20.000
+ROUTE source=10.0.0.6 destination=10.0.0.5 path=[6, 3, 5] cost=16.000
+BASELINE source=10.0.0.6 rate=3.91 pps ema=6.20 threshold=1500.00
+BASELINE source=10.0.0.5 rate=1.96 pps ema=4.67 threshold=1500.00
+BASELINE source=10.0.0.6 rate=3.98 pps ema=5.76 threshold=1500.00
+ROUTE source=10.0.0.1 destination=10.0.0.2 path=[1, 2] cost=5.000
+ROUTE source=10.0.0.2 destination=10.0.0.1 path=[2, 1] cost=5.000
+BASELINE source=10.0.0.1 rate=1.96 pps ema=17.55 threshold=1500.00
+ROUTE source=10.0.0.2 destination=10.0.0.3 path=[2, 3] cost=10.000
+BASELINE source=10.0.0.1 rate=5.96 pps ema=15.23 threshold=1500.00
+BASELINE source=10.0.0.2 rate=3.98 pps ema=9.13 threshold=1500.00
+ROUTE source=10.0.0.3 destination=10.0.0.2 path=[3, 2] cost=10.000
+ROUTE source=10.0.0.2 destination=10.0.0.4 path=[2, 4] cost=6.000
+ROUTE source=10.0.0.4 destination=10.0.0.2 path=[4, 2] cost=6.000
+ROUTE source=10.0.0.2 destination=10.0.0.5 path=[2, 5] cost=12.000
+ROUTE source=10.0.0.5 destination=10.0.0.2 path=[5, 2] cost=12.000
+ROUTE source=10.0.0.2 destination=10.0.0.6 path=[2, 6] cost=14.000
+ROUTE source=10.0.0.6 destination=10.0.0.2 path=[6, 2] cost=14.000
+BASELINE source=10.0.0.1 rate=1.85 pps ema=12.56 threshold=1500.00
+BASELINE source=10.0.0.2 rate=5.56 pps ema=8.41 threshold=1500.00
+BASELINE source=10.0.0.3 rate=3.95 pps ema=5.93 threshold=1500.00
+BASELINE source=10.0.0.4 rate=1.98 pps ema=4.72 threshold=1500.00
+BASELINE source=10.0.0.3 rate=5.96 pps ema=5.93 threshold=1500.00
+BASELINE source=10.0.0.4 rate=5.99 pps ema=4.98 threshold=1500.00
+BASELINE source=10.0.0.5 rate=5.95 pps ema=4.93 threshold=1500.00
+BASELINE source=10.0.0.4 rate=1.98 pps ema=4.38 threshold=1500.00
+BASELINE source=10.0.0.6 rate=1.99 pps ema=5.00 threshold=1500.00
+BASELINE source=10.0.0.5 rate=3.98 pps ema=4.74 threshold=1500.00
+BASELINE source=10.0.0.6 rate=5.93 pps ema=5.19 threshold=1500.00

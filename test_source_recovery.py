@@ -38,28 +38,31 @@ class SourceRecoveryTests(unittest.TestCase):
         for switch, dp in self.c.datapaths.items():
             self.q["samples"][switch] = dict(count=1000, duration=now,
                 seen=now, rate=0, datapath=dp)
-        self.q["last_anomaly"] = now - 51
+        self.q["last_anomaly"] = now - self.c.SOURCE_RECOVERY_QUIET_SECONDS - 1
 
     def test_ongoing_flood_resets_clock_but_low_rate_probes_do_not(self):
         for switch in self.c.graph:
             self.sample(switch, 1, 0)
-        self.sample(2, 2, 1000)
+        flood = int(self.c.MIN_THRESHOLD_PPS * 2)
+        self.sample(2, 2, flood)
         self.assertEqual(self.q["last_anomaly"], 2)
-        # Clear the last high-rate sample before simulating ordinary probes.
-        self.sample(2, 3, 1001)
+        # Clear the high-rate sample, then keep sending ordinary 1 pps probes.
+        self.sample(2, 3, flood + 1)
         for switch in self.c.graph:
-            self.sample(switch, 3, 1001 if switch == 2 else 0)
+            self.sample(switch, 3, flood + 1 if switch == 2 else 0)
         last_anomaly = self.q["last_anomaly"]
+        before = int(last_anomaly + self.c.SOURCE_RECOVERY_QUIET_SECONDS - 1)
+        after = before + 3
         for switch in self.c.graph:
-            self.sample(switch, 51, 1049 if switch == 2 else 0)
+            self.sample(switch, before, flood + before - 2 if switch == 2 else 0)
         self.assertEqual(self.q["last_anomaly"], last_anomaly)
-        self.assertFalse(self.c.recovery_ready(self.q, 51))
+        self.assertFalse(self.c.recovery_ready(self.q, before))
         for switch in self.c.graph:
-            self.sample(switch, 54, 1052 if switch == 2 else 0)
-        self.assertTrue(self.c.recovery_ready(self.q, 54))
-        self.sample(2, 55, 2052)
-        self.assertEqual(self.q["last_anomaly"], 55)
-        self.assertFalse(self.c.recovery_ready(self.q, 55))
+            self.sample(switch, after, flood + after - 2 if switch == 2 else 0)
+        self.assertTrue(self.c.recovery_ready(self.q, after))
+        self.sample(2, after + 1, 2 * flood + after - 2)
+        self.assertEqual(self.q["last_anomaly"], after + 1)
+        self.assertFalse(self.c.recovery_ready(self.q, after + 1))
 
     def test_stale_missing_and_reset_counters_delay_release(self):
         self.fresh_quiet_state()

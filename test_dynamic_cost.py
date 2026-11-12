@@ -40,9 +40,9 @@ class DynamicCostTests(unittest.TestCase):
         for a, b in ((1, 2), (2, 1)):
             self.sample(a, b, 1, 0)
             self.sample(a, b, 2, 2500000)  # 20 Mbit/s in each direction
-        self.assertEqual(c.graph[1][2]["weight"], 20)  # 5 + 30 * 0.5
+        self.assertEqual(c.graph[1][2]["weight"], 7)  # 5 + 4 * 0.5
         self.sample(2, 1, 3, 12500000)  # 80 Mbit/s burst, capped at 100%
-        self.assertEqual(c.graph[1][2]["weight"], 35)
+        self.assertEqual(c.graph[1][2]["weight"], 9)
         # A reset reinitializes both directions instead of producing negatives.
         self.sample(1, 2, 0, 0)
         self.sample(2, 1, 0, 0)
@@ -52,12 +52,17 @@ class DynamicCostTests(unittest.TestCase):
         c = self.controller
         self.sample(1, 2, 1, 0)
         self.sample(1, 2, 2, 2500000)
+        self.assertEqual(c.graph[1][2]["weight"], 7)
+        # Load alone no longer outweighs the alternative. An anomaly does.
+        c.graph[1][2]["anomaly_until"] = float("inf")
+        c.update_link_cost(1, 2, 0)
         source, target = "10.0.0.1", "10.0.0.2"
         switch, port = c.host_attachments[source]
         c.route_ipv4(c.datapaths[switch], port, source, target)
         self.assertEqual(c.routes[source, target]["path"], [1, 4, 2])
         # PacketIn follows the committed cached path. The monitor is responsible
         # for explicitly migrating it or removing an idle route.
+        c.graph[1][2]["anomaly_until"] = 0
         self.sample(1, 2, 3, 2500000)
         c.route_ipv4(c.datapaths[switch], port, source, target)
         self.assertEqual(c.routes[source, target]["path"], [1, 4, 2])
@@ -75,7 +80,7 @@ class DynamicCostTests(unittest.TestCase):
         c.flow_samples[switch, port, source, target] = {"rate": 1000}
         c.blocked_sources.add(source)
         c.mark_anomaly_paths(source, switch)
-        self.assertEqual(c.graph[1][2]["weight"], 55)
+        self.assertEqual(c.graph[1][2]["weight"], 25)
         self.assertEqual(c.graph[1][4]["weight"], 8)
         expiry = c.graph[1][2]["anomaly_until"]
         c.update_link_cost(1, 2, expiry + 1)
@@ -89,7 +94,7 @@ class DynamicCostTests(unittest.TestCase):
         c.route_ipv4(c.datapaths[switch], port, source, target)
         old = c.routes[source, target]
         # A strong penalty makes the alternative 1-4-2 materially cheaper.
-        c.graph[1][2]["weight"] = 55
+        c.graph[1][2]["weight"] = 25
         with patch("mesh_controller.hub.spawn") as spawn:
             c.reevaluate_routes(old["last_reroute"] + 6)
             self.assertEqual(spawn.call_count, 1)
@@ -107,6 +112,49 @@ class DynamicCostTests(unittest.TestCase):
             c.reevaluate_routes(c.routes[source, target]["last_reroute"] + 1)
             spawn.assert_not_called()
 
+    def test_warmup_fixed_cap_idle_gap_and_completion(self):
+        c = self.controller
+        source = "10.0.0.1"
+        c.source_baselines[source] = 1000
+        self.assertEqual(c.source_threshold(source, 1000, 0), 1500)
+        self.assertEqual(c.source_threshold(source, 1000, 20), 1500)
+        self.assertEqual(c.source_warmups[source]["active_seconds"], 0)
+        for tick in range(1, 21):
+            self.assertEqual(c.source_threshold(source, 1000, 20 + tick * .5), 1500)
+        self.assertTrue(c.source_warmups[source]["complete"])
+        self.assertEqual(c.source_threshold(source, 1000, 31), 5000)
+
+    def test_warmup_attack_cannot_train_or_restart_on_recovery(self):
+        c = self.controller
+        source = "10.0.0.1"
+        self.assertLess(c.source_threshold(source, 100000, 0), 100000)
+        self.assertEqual(c.source_warmups[source]["active_seconds"], 0)
+        c.begin_quarantine(source)
+        c.blocked_sources.remove(source)
+        c.source_baselines[source] = 20
+        self.assertEqual(c.source_threshold(source, 100000, 100), 1500)
+        self.assertTrue(c.source_warmups[source]["complete"])
+
+    def test_flow_stats_rejects_flood_during_warmup(self):
+        c = self.controller
+        source, target = "10.0.0.1", "10.0.0.6"
+        switch, port = c.host_attachments[source]
+        c.route_ipv4(c.datapaths[switch], port, source, target)
+        def observe(count, duration, xid):
+            flow = SimpleNamespace(cookie=c.MONITOR_COOKIE,
+                match={"ipv4_src": source, "ipv4_dst": target, "in_port": port},
+                packet_count=count, duration_sec=duration, duration_nsec=0)
+            c.flow_stats(SimpleNamespace(msg=SimpleNamespace(
+                datapath=c.datapaths[switch], body=[flow], xid=xid, flags=0)))
+        observe(1000, 1, 1)
+        self.assertEqual(c.source_baselines[source], 1000)
+        # Normal EMA detection would allow 5000 pps here. Warmup must still
+        # reject this 2000 pps sample under its fixed 1500 pps ceiling.
+        observe(3000, 2, 2)
+        self.assertIn(source, c.blocked_sources)
+        self.assertEqual(c.source_baselines[source], 1000)
+        self.assertEqual(c.graph[2][6]["weight"], 34)
+
     def test_failed_acknowledgement_restores_previous_path(self):
         c = self.controller
         key = ("10.0.0.1", "10.0.0.2")
@@ -116,7 +164,7 @@ class DynamicCostTests(unittest.TestCase):
         old["switching"] = True
         with patch.object(c, "wait_for_barrier", side_effect=[RuntimeError("timeout"), None, None]), \
                 patch.object(c.logger, "exception"):
-            c.switch_route(key, old, [1, 4, 2], 55, 14)
+            c.switch_route(key, old, [1, 4, 2], 25, 14)
         self.assertIs(c.routes[key], old)
         self.assertEqual(old["path"], [1, 2])
         self.assertFalse(old["switching"])
