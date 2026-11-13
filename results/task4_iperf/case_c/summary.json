@@ -14,15 +14,15 @@
   "attack_start": 15,
   "attack_end": 27,
   "initial_pingall_loss": 0.0,
-  "start_monotonic": 65307.82583282,
-  "stream_offset": 153.21925276300317,
-  "block_after_attack_seconds": 1.000815593994048,
+  "start_monotonic": 90273.386921019,
+  "stream_offset": 153.66311100999883,
+  "block_after_attack_seconds": 5.000041373990825,
   "capture_exit": 124,
   "capture_packets": "",
-  "capture_start": 17.000941215999774,
-  "capture_end": 21.0008746099993,
-  "drops_before": 115368,
-  "drops_after": 377357,
+  "capture_start": 21.000433331995737,
+  "capture_end": 25.00091983699531,
+  "drops_before": 254686,
+  "drops_after": 513848,
   "flood_active_during_capture": true,
   "switches_blocking_source": [
     "s1",
@@ -33,13 +33,13 @@
     "s6"
   ],
   "blocked_source_ping": "PING 10.0.0.6 (10.0.0.6) 56(84) bytes of data.\r\n\r\n--- 10.0.0.6 ping statistics ---\r\n1 packets transmitted, 0 received, 100% packet loss, time 0ms\r\n\r\n",
-  "blocked_probe_seconds_after_flood": 4.023913683995488,
+  "blocked_probe_seconds_after_flood": 4.006933241995284,
   "post_attack_ping_loss": 0.0,
-  "penalty_start": 15.640881482999248,
-  "penalty_end": 45.496765029995004,
+  "penalty_start": 19.0550598980044,
+  "penalty_end": 47.05635936399631,
   "path_changes": [
     {
-      "time": 0.00188659799459856,
+      "time": 0.0016083109949249774,
       "path": [
         1,
         2,
@@ -47,7 +47,7 @@
       ]
     }
   ],
-  "recovery_verified_at": 66.98655615399912,
+  "recovery_verified_at": 66.91199707999476,
   "recovered_pingall_loss": 0.0,
   "controller_config": {
     "load_alpha": 4.0,

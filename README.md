@@ -212,13 +212,24 @@ Check terminal 1, the path should be rerouted to `s5->s3->s6` with cost 16 again
 
 ## Rerouting of Legitimate Traffic
 
-### Establish `h1->h6` data flow
+### Manual test
+Stop the controller in terminal 1 and exit mininet.
+
+In terminal 1, run
+```bash
+cd MininetLab
+MININET_ROUTE_PINS='{"10.0.0.5,10.0.0.6":[5,6]}' ./run_controller.sh
+```
+This is to pin down `s5-s6` as the only link for data transfer between `h5` and `h6`.
+
+Otherwise the high traffic rate will choose `s5-s3-s6` and mark them as anomaly.
+
 In terminal 2, run
 ```text
 h6 iperf -s -u &
 h1 iperf -c h6 -u -b 10M -t 600 &
 ```
-`h1` continuously sends UDP data to `h6` for up to 600 seconds. In the tested iperf 2.0.13 version, `10M` means 10,485,760 bits/s, approximately 10.49 Mbps.
+`h1` continuously sends data to `h6` for up to 600 seconds. In the tested iperf 2.0.13 version, `10M` means 10,485,760 bits/s, approximately 10.49 Mbps.
 
 
 The measurements below come from the automated sequential evaluation, which
@@ -334,6 +345,16 @@ independently of iperf's sequence-based loss estimate. Both measurements are
 retained as observed. Recovered throughput returns to approximately 10.49 Mbps
 with zero measured loss in the recovered phase.
 
+### Automatic test
+Stop the controller and exit Mininet. Open a new terminal, run:
+```bash
+cd ~/MininetLab
+sudo env PYTHONDONTWRITEBYTECODE=1 python3 evaluate_task4.py
+```
+Check the result in the `task4_iperf` folder.
+
+![Plot](results/task4_iperf_poll2_20261112/task4_iperf.png)
+
 ### Link-cost recovery and source recovery
 
 These are separate events. Blocking a source removes its flood load, but the
@@ -343,5 +364,3 @@ link costs and the legitimate route can recover before the graph's source
 recovery markers. All three cases passed the firewall-rule, destination-capture,
 drop-counter and recovered-connectivity checks; recovered pingall received
 30 out of 30 replies.
-
-![Plot](results/task4_iperf_poll2_20261112/task4_iperf.png)

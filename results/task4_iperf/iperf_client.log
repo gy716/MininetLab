@@ -3,7 +3,7 @@ Client connecting to 10.0.0.6, UDP port 5001
 Sending 1470 byte datagrams, IPG target: 1121.52 us (kalman adjust)
 UDP buffer size:  208 KByte (default)
 ------------------------------------------------------------
-[  5] local 10.0.0.1 port 56482 connected with 10.0.0.6 port 5001
+[  5] local 10.0.0.1 port 55246 connected with 10.0.0.6 port 5001
 [ ID] Interval       Transfer     Bandwidth
 [  5]  0.0- 1.0 sec  1.25 MBytes  10.5 Mbits/sec
 [  5]  1.0- 2.0 sec  1.25 MBytes  10.5 Mbits/sec
@@ -106,12 +106,12 @@ UDP buffer size:  208 KByte (default)
 [  5] 98.0-99.0 sec  1.25 MBytes  10.5 Mbits/sec
 [  5] 99.0-100.0 sec  1.25 MBytes  10.5 Mbits/sec
 [  5] 100.0-101.0 sec  1.25 MBytes  10.5 Mbits/sec
-[  5] 101.0-102.0 sec  1.25 MBytes  10.5 Mbits/sec
-[  5] 102.0-103.0 sec  1.25 MBytes  10.5 Mbits/sec
+[  5] 101.0-102.0 sec  1.24 MBytes  10.4 Mbits/sec
+[  5] 102.0-103.0 sec  1.26 MBytes  10.5 Mbits/sec
 [  5] 103.0-104.0 sec  1.25 MBytes  10.5 Mbits/sec
 [  5] 104.0-105.0 sec  1.25 MBytes  10.5 Mbits/sec
-[  5] 105.0-106.0 sec  1.25 MBytes  10.5 Mbits/sec
-[  5] 106.0-107.0 sec  1.25 MBytes  10.5 Mbits/sec
+[  5] 105.0-106.0 sec  1.24 MBytes  10.4 Mbits/sec
+[  5] 106.0-107.0 sec  1.26 MBytes  10.6 Mbits/sec
 [  5] 107.0-108.0 sec  1.25 MBytes  10.5 Mbits/sec
 [  5] 108.0-109.0 sec  1.25 MBytes  10.5 Mbits/sec
 [  5] 109.0-110.0 sec  1.25 MBytes  10.5 Mbits/sec
@@ -183,16 +183,16 @@ UDP buffer size:  208 KByte (default)
 [  5] 175.0-176.0 sec  1.25 MBytes  10.5 Mbits/sec
 [  5] 176.0-177.0 sec  1.25 MBytes  10.5 Mbits/sec
 [  5] 177.0-178.0 sec  1.25 MBytes  10.5 Mbits/sec
-[  5] 178.0-179.0 sec  1.23 MBytes  10.3 Mbits/sec
-[  5] 179.0-180.0 sec  1.28 MBytes  10.7 Mbits/sec
-[  5] 180.0-181.0 sec   577 KBytes  4.73 Mbits/sec
+[  5] 178.0-179.0 sec  1.25 MBytes  10.5 Mbits/sec
+[  5] 179.0-180.0 sec  1.25 MBytes  10.5 Mbits/sec
+[  5] 180.0-181.0 sec  1.25 MBytes  10.5 Mbits/sec
 [  5] 181.0-182.0 sec  1.25 MBytes  10.5 Mbits/sec
 [  5] 182.0-183.0 sec  1.25 MBytes  10.5 Mbits/sec
-[  5] 183.0-184.0 sec  1.22 MBytes  10.2 Mbits/sec
-[  5] 184.0-185.0 sec  1.28 MBytes  10.7 Mbits/sec
+[  5] 183.0-184.0 sec  1.25 MBytes  10.5 Mbits/sec
+[  5] 184.0-185.0 sec  1.25 MBytes  10.5 Mbits/sec
 [  5] 185.0-186.0 sec  1.25 MBytes  10.5 Mbits/sec
-[  5] 186.0-187.0 sec  1.23 MBytes  10.3 Mbits/sec
-[  5] 187.0-188.0 sec  1.27 MBytes  10.7 Mbits/sec
+[  5] 186.0-187.0 sec  1.25 MBytes  10.5 Mbits/sec
+[  5] 187.0-188.0 sec  1.25 MBytes  10.5 Mbits/sec
 [  5] 188.0-189.0 sec  1.25 MBytes  10.5 Mbits/sec
 [  5] 189.0-190.0 sec  1.25 MBytes  10.5 Mbits/sec
 [  5] 190.0-191.0 sec  1.25 MBytes  10.5 Mbits/sec
@@ -227,8 +227,9 @@ UDP buffer size:  208 KByte (default)
 [  5] 219.0-220.0 sec  1.25 MBytes  10.5 Mbits/sec
 [  5] 220.0-221.0 sec  1.25 MBytes  10.5 Mbits/sec
 [  5] 221.0-222.0 sec  1.25 MBytes  10.5 Mbits/sec
-[  5]  0.0-223.0 sec   278 MBytes  10.5 Mbits/sec
-[  5] Sent 198326 datagrams
+[  5] 222.0-223.0 sec  1.25 MBytes  10.5 Mbits/sec
+[  5]  0.0-223.3 sec   279 MBytes  10.5 Mbits/sec
+[  5] Sent 199100 datagrams
 [  5] Server Report:
-[  5]  0.0-223.0 sec   278 MBytes  10.5 Mbits/sec   0.055 ms   37/198326 (0.019%)
-[  5] 0.0000-222.9738 sec  38 datagrams received out-of-order
+[  5]  0.0-223.3 sec   279 MBytes  10.5 Mbits/sec   1.966 ms   43/199100 (0.022%)
+[  5] 0.0000-223.3183 sec  24 datagrams received out-of-order
