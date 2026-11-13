@@ -209,8 +209,8 @@ sequenceDiagram
         R->>I: Request fresh drop-counter check
         I-->>R: Completed counter response
         alt Quiet and generation/connections unchanged
-            R->>I: Delete ingress drop last; await barrier
-            R->>R: Remove software block; preserve EMA
+            R->>I: Delete ingress drop last and await barrier
+            R->>R: Remove software block and preserve EMA
         else Activity, timeout or state change
             R->>I: Restore drop
             R->>O: Restore drops

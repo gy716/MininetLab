@@ -220,9 +220,9 @@ In terminal 1, run
 cd MininetLab
 MININET_ROUTE_PINS='{"10.0.0.5,10.0.0.6":[5,6]}' ./run_controller.sh
 ```
-This is to pin down `s5-s6` as the only link for data transfer between `h5` and `h6`.
+This is to pin down `s5-s6` as the only link for data transfer from `h5` to `h6`.
 
-Otherwise the high traffic rate will choose `s5-s3-s6` and mark them as anomaly.
+Otherwise the high traffic rate will choose `s5->s3->s6` and mark them as anomaly.
 
 In terminal 2, run
 ```text
